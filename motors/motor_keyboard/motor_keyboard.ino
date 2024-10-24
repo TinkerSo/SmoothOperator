@@ -27,12 +27,12 @@ void control_motors(char command) {
       move_motor(right_motor, 100);
       break;
     case 'a':  // Left
-      move_motor(left_motor, -50);
+      move_motor(left_motor, -100);
       move_motor(right_motor, -100);
       break;
     case 'd':  // Right
       move_motor(left_motor, 100);
-      move_motor(right_motor, 50);
+      move_motor(right_motor, 100);
       break;
     case 'x':  // Stop
       move_motor(left_motor, 0);
