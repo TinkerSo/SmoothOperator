@@ -8,8 +8,8 @@
 static const char *TAG = "example";
 
 // Servo parameters
-#define SERVO_MIN_PULSEWIDTH_US 500  // Minimum pulse width in microseconds
-#define SERVO_MAX_PULSEWIDTH_US 2500 // Maximum pulse width in microseconds
+#define SERVO_MIN_PULSEWIDTH_US 1000  // Minimum pulse width in microseconds
+#define SERVO_MAX_PULSEWIDTH_US 2000 // Maximum pulse width in microseconds
 #define SERVO_MIN_DEGREE        -90  // Minimum angle
 #define SERVO_MAX_DEGREE        90   // Maximum angle
 
@@ -96,26 +96,42 @@ void app_main(void) {
     while (1) {
         if (read(uart_num, &inputChar, 1) > 0) {
             switch (inputChar) {
-                case 'w':
-                    angle = (angle + angle_step) <= max_angle ? angle + angle_step : max_angle;
+                case 's':
+                    // angle = (angle + angle_step) <= max_angle ? angle + angle_step : max_angle;
+                    // ESP_LOGI(TAG, "Motor A and B moving forward, Angle: %d", angle);
+                    angle = 90;
                     ESP_LOGI(TAG, "Motor A and B moving forward, Angle: %d", angle);
                     break;
-                case 's':
-                    angle = (angle - angle_step) >= min_angle ? angle - angle_step : min_angle;
+                case 'w':
+                    // angle = (angle - angle_step) >= min_angle ? angle - angle_step : min_angle;
+                    // ESP_LOGI(TAG, "Motor A and B moving backward, Angle: %d", angle);
+                    angle = -90;
                     ESP_LOGI(TAG, "Motor A and B moving backward, Angle: %d", angle);
                     break;
                 case 'd':
-                    turn_angle = (turn_angle + angle_step) <= max_angle ? turn_angle + angle_step : turn_angle - angle_step;
+                    // turn_angle = (turn_angle + angle_step) <= max_angle ? turn_angle + angle_step : max_angle;
+                    // ESP_LOGI(TAG, "Motor A moving forward, Motor B moving backward, Turn Angle: %d", turn_angle);
+                    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(turn_angle, false)));
+                    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-turn_angle, true)));
+                    turn_angle = 90;
                     ESP_LOGI(TAG, "Motor A moving forward, Motor B moving backward, Turn Angle: %d", turn_angle);
                     ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(turn_angle, false)));
                     ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-turn_angle, true)));
                     continue;  // Skip further processing to maintain current forward/backward angle
                 case 'a':
-                    turn_angle = (turn_angle + angle_step) >= -max_angle ? turn_angle - angle_step : turn_angle + angle_step;
+                    // turn_angle = (turn_angle - angle_step) >= -max_angle ? turn_angle - angle_step : min_angle;
+                    // ESP_LOGI(TAG, "Motor A moving forward, Motor B moving backward, Turn Angle: %d", turn_angle);
+                    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(-turn_angle, false)));
+                    // ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(turn_angle, true)));
+                    turn_angle = -90;
                     ESP_LOGI(TAG, "Motor A moving forward, Motor B moving backward, Turn Angle: %d", turn_angle);
-                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(-turn_angle, false)));
-                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(turn_angle, true)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(turn_angle, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-turn_angle, true)));
                     continue;  // Skip further processing to maintain current forward/backward angle
+                case 'x':
+                    angle = 0;
+                    ESP_LOGI(TAG, "Motor A and B moving backward, Angle: %d", angle);
+                    break;
             }
             // Update both motors to new forward or backward position
             ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(angle, false)));
