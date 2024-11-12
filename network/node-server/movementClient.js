@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const keypress = require('keypress');
 
 // Connect to the WebSocket server running on localhost
-const ws = new WebSocket('ws://localhost:3000');
+const ws = new WebSocket('ws://192.168.1.3:3000');
 
 keypress(process.stdin); // Enable keypress event on stdin
 
