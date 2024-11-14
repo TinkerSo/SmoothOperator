@@ -1,7 +1,7 @@
 {
     "version":            "1",
     "project_name":       "udp_client",
-    "project_version":    "4ebb41e-dirty",
+    "project_version":    "261b0b7-dirty",
     "project_path":       "/Users/ericchen/Desktop/SmoothOperator/network/node-server/udp_client",
     "idf_path":           "/Users/ericchen/esp/esp-idf",
     "build_dir":          "/Users/ericchen/Desktop/SmoothOperator/network/node-server/udp_client/build",
