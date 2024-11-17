@@ -1,12 +1,13 @@
 const WebSocket = require('ws');
-const SerialPort = require('serialport');
+const { SerialPort } = require('serialport'); // Use named import
 
 // WebSocket setup
 const SERVER_URL = 'ws://192.168.1.3:8080';
 const ws = new WebSocket(SERVER_URL);
 
 // Serial port setup for Jetson Nano (adjust the port name if necessary)
-const port = new SerialPort('/dev/ttyTHS1', {
+const port = new SerialPort({
+  path: '/dev/ttyTHS1',
   baudRate: 115200,
 });
 
