@@ -1,4 +1,3 @@
-// doesn't fully work yet. ultrasonic reading is off, have to fix the configuration
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -159,22 +158,22 @@ void distance_measurement_task(void *pvParameters) {
         if (xTaskNotifyWait(0x00, ULONG_MAX, &tof_ticks_front, pdMS_TO_TICKS(1000)) == pdTRUE) {
             float pulse_width_us = tof_ticks_front * (1000000.0 / esp_clk_apb_freq());
             distance_front = pulse_width_us / 58.0;  // Conversion to centimeters
-            if (distance_front <= 350.0) {           // Ignore very high values
-                ESP_LOGI(TAG, "Front sensor distance: %.2f cm", distance_front);
-            } else {
-                ESP_LOGW(TAG, "Front sensor out of range");
-            }
+            // if (distance_front <= 350.0) {           // Ignore very high values
+            //     ESP_LOGI(TAG, "Front sensor distance: %.2f cm", distance_front);
+            // } else {
+            //     ESP_LOGW(TAG, "Front sensor out of range");
+            // }
         }
 
         gen_trig(HC_SR04_TRIG_GPIO_LEFT);
         if (xTaskNotifyWait(0x00, ULONG_MAX, &tof_ticks_left, pdMS_TO_TICKS(1000)) == pdTRUE) {
             float pulse_width_us = tof_ticks_left * (1000000.0 / esp_clk_apb_freq());
             distance_left = pulse_width_us / 58.0;   // Conversion to centimeters
-            if (distance_left <= 350.0) {            // Ignore very high values
-                ESP_LOGI(TAG, "Left sensor distance: %.2f cm", distance_left);
-            } else {
-                ESP_LOGW(TAG, "Left sensor out of range");
-            }
+            // if (distance_left <= 350.0) {            // Ignore very high values
+            //     ESP_LOGI(TAG, "Left sensor distance: %.2f cm", distance_left);
+            // } else {
+            //     ESP_LOGW(TAG, "Left sensor out of range");
+            // }
         }
 
         vTaskDelay(pdMS_TO_TICKS(500)); // Delay before the next measurement cycle
@@ -243,4 +242,135 @@ void motor_control_task(void *pvParameters) {
 void app_main(void) {
     xTaskCreate(motor_control_task, "motor_control_task", 4096, NULL, 5, NULL);
     xTaskCreate(distance_measurement_task, "distance_measurement_task", 4096, NULL, 5, &distance_measurement_task_handle);
+}
+
+Above is good
+////////////////////
+
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+#include "driver/mcpwm.h"
+#include "esp_log.h"
+#include "esp_attr.h"
+
+// GPIO definitions for ultrasonic and motor control
+#define GPIO_ULTRASONIC_TRIG  13
+#define GPIO_ULTRASONIC_ECHO  12
+#define GPIO_MOTOR_A_PWM      33
+#define GPIO_MOTOR_B_PWM      15
+
+#define DISTANCE_THRESHOLD_CM 20  // Threshold distance in centimeters
+#define SPEED_OF_SOUND_CM_US  0.0343  // Speed of sound in cm/us
+
+static const char *TAG = "SmoothOperator";
+
+// Global flag to control motor state
+volatile bool stop_motors_flag = false;
+
+// Initialize GPIO for Ultrasonic Sensor
+void ultrasonic_gpio_init() {
+    gpio_set_direction(GPIO_ULTRASONIC_TRIG, GPIO_MODE_OUTPUT);
+    gpio_set_direction(GPIO_ULTRASONIC_ECHO, GPIO_MODE_INPUT);
+    gpio_set_level(GPIO_ULTRASONIC_TRIG, 0);
+}
+
+// Send a pulse to the Ultrasonic Sensor
+void send_ultrasonic_pulse() {
+    gpio_set_level(GPIO_ULTRASONIC_TRIG, 1);
+    esp_rom_delay_us(10);  // Send a 10us pulse
+    gpio_set_level(GPIO_ULTRASONIC_TRIG, 0);
+}
+
+// MCPWM configuration to stop motors
+void stop_motors() {
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_MOTOR_A_PWM);
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_MOTOR_B_PWM);
+
+    mcpwm_config_t pwm_config = {
+        .frequency = 1000,  // frequency = 1kHz
+        .cmpr_a = 0,        // duty cycle of PWMxA = 0
+        .cmpr_b = 0,        // duty cycle of PWMxB = 0
+        .counter_mode = MCPWM_UP_COUNTER,
+        .duty_mode = MCPWM_DUTY_MODE_0
+    };
+
+    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+}
+
+// Task to monitor distance and control motor state
+void ultrasonic_task(void *pvParameters) {
+    uint32_t echo_start_time, echo_end_time, pulse_time_us;
+    float distance_cm;
+
+    while (1) {
+        send_ultrasonic_pulse();
+        // Wait for echo high
+        while (gpio_get_level(GPIO_ULTRASONIC_ECHO) == 0);
+        echo_start_time = esp_timer_get_time();
+
+        // Wait for echo low
+        while (gpio_get_level(GPIO_ULTRASONIC_ECHO) == 1);
+        echo_end_time = esp_timer_get_time();
+
+        // Calculate pulse duration and distance
+        pulse_time_us = echo_end_time - echo_start_time;
+        distance_cm = (pulse_time_us * SPEED_OF_SOUND_CM_US) / 2;
+
+        if (distance_cm < DISTANCE_THRESHOLD_CM) {
+            ESP_LOGI(TAG, "Object detected at %.2f cm, stopping motors", distance_cm);
+            stop_motors_flag = true;
+        } else {
+            ESP_LOGI(TAG, "Distance: %.2f cm", distance_cm);
+            stop_motors_flag = false;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100));  // Delay to prevent continuous triggering
+    }
+}
+
+// Task to control the motors based on sensor inputs
+void motor_control_task(void *pvParameters) {
+    // Set up MCPWM for motor control
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_MOTOR_A_PWM);
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_MOTOR_B_PWM);
+
+    // Configuration for the PWM operation
+    mcpwm_config_t pwm_config = {
+        .frequency = 1000,  // PWM frequency at 1kHz
+        .cmpr_a = 0,        // Initial duty cycle for motor A at 0%
+        .cmpr_b = 0,        // Initial duty cycle for motor B at 0%
+        .counter_mode = MCPWM_UP_COUNTER,
+        .duty_mode = MCPWM_DUTY_MODE_0
+    };
+
+    // Initialize PWM with above settings
+    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+
+    // Main loop to control motor based on distance measurements
+    while (1) {
+        if (stop_motors_flag) {
+            // Stop motors if the flag is set
+            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 0);  // Set duty cycle to 0% for Motor A
+            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, 0);  // Set duty cycle to 0% for Motor B
+            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); // Set duty type to 0 which stops the motor
+            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
+        } else {
+            // Run motors if no object is detected
+            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 75);  // Set duty cycle to 75% for Motor A
+            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, 75);  // Set duty cycle to 75% for Motor B
+            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); // Apply the duty cycle setting
+            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));  // Delay for 100ms before the next loop iteration
+    }
+}
+
+
+void app_main(void) {
+    ESP_LOGI(TAG, "Initializing...");
+    ultrasonic_gpio_init();
+    xTaskCreate(ultrasonic_task, "ultrasonic_task", 2048, NULL, 5, NULL);
+    xTaskCreate(motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
 }
