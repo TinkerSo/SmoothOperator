@@ -26,7 +26,7 @@ ws.on('message', (message) => {
   const command = message.toString().trim().toUpperCase();
 
   // Validate command
-  if (['W', 'A', 'S', 'D'].includes(command)) {
+  if (['W', 'A', 'S', 'D', 'X'].includes(command)) {
     console.log(`Received movement command: ${command}`);
     // Send the command to the ESP32 via UART
     port.write(`${command}\n`, (err) => {
