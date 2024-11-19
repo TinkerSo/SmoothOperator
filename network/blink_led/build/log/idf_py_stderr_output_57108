@@ -1,0 +1,10 @@
+[0;33m--- idf_monitor on PORT 115200 ---[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H ---[0m
+[0;33mConnection to PORT failed. Available ports:
+/dev/cu.debug-console
+/dev/cu.wlan-debug
+/dev/cu.BoseQC45
+/dev/cu.Bluetooth-Incoming-Port
+/dev/cu.usbserial-01D96E8A
+/dev/cu.SLAB_USBtoUART[0m
+[0m
