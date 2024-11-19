@@ -25,11 +25,17 @@ ws.on('open', () => {
 ws.on('message', (message) => {
   const command = message.toString().trim().toUpperCase();
 
+  // Validate command
+  if (['W', 'A', 'S', 'D', 'X'].includes(command)) {
+    //console.log(`Received movement command: ${command}`);
+    // Send the command to the ESP32 via UART
     port.write(`${command}\n`, (err) => {
       if (err) {
         return console.error(`Failed to send command to ESP32: ${err.message}`);
       }
+      //console.log(`Sent command to ESP32: ${command}`);
     });
+  }
 });
 
 // Handle WebSocket disconnection

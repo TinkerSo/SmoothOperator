@@ -20,9 +20,7 @@ ws.on('open', () => {
 
         if (['w', 'a', 's', 'd', 'x'].includes(char)) {
             ws.send(char);
-            //console.log(`Sent command: ${char}`);
-        } else {
-            //console.log('Invalid command. Please press "w", "a", "s", "d" or "x".');
+            // console.log(`Sent command: ${char}`);
         }
     });
 
