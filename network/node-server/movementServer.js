@@ -10,7 +10,7 @@ server.on('connection', (socket) => {
 
   // Handle incoming messages from clients
   socket.on('message', (message) => {
-    console.log(`Received command: ${message}`);
+    // console.log(`Received command: ${message}`);
 
     // Broadcast the command to all connected clients except the sender
     server.clients.forEach((client) => {

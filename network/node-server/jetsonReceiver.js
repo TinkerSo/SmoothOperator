@@ -27,16 +27,16 @@ ws.on('message', (message) => {
 
   // Validate command
   if (['W', 'A', 'S', 'D', 'X'].includes(command)) {
-    console.log(`Received movement command: ${command}`);
+    //console.log(`Received movement command: ${command}`);
     // Send the command to the ESP32 via UART
     port.write(`${command}\n`, (err) => {
       if (err) {
         return console.error(`Failed to send command to ESP32: ${err.message}`);
       }
-      console.log(`Sent command to ESP32: ${command}`);
+      //console.log(`Sent command to ESP32: ${command}`);
     });
   } else {
-    console.log(`Invalid command received: ${command}`);
+    //console.log(`Invalid command received: ${command}`);
   }
 });
 

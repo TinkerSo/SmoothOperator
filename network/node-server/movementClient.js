@@ -8,15 +8,21 @@ keypress(process.stdin); // Enable keypress event on stdin
 
 ws.on('open', () => {
     console.log('Connected to server');
-    console.log('Press "w", "a", "s", "d" to send movement commands.');
+    console.log('Press "w", "a", "s", "d", "x" to send movement commands. Press "z" to exit.');
 
     // Listen for keypress events
     process.stdin.on('keypress', (char, key) => {
-        if (['w', 'a', 's', 'd'].includes(char)) {
+        if (key && key.name === 'z') {
+            ws.close(); // Close the connection on 'x'
+            process.stdin.pause(); // Stop listening for keypresses
+            return;
+        }
+
+        if (['w', 'a', 's', 'd', 'x'].includes(char)) {
             ws.send(char);
-            console.log(`Sent command: ${char}`);
+            //console.log(`Sent command: ${char}`);
         } else {
-            console.log('Invalid command. Please press "w", "a", "s", or "d".');
+            //console.log('Invalid command. Please press "w", "a", "s", "d" or "x".');
         }
     });
 
