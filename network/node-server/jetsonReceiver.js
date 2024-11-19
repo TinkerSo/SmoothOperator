@@ -33,7 +33,7 @@ ws.on('message', (message) => {
       if (err) {
         return console.error(`Failed to send command to ESP32: ${err.message}`);
       }
-      //console.log(`Sent command to ESP32: ${command}`);
+      console.log(`Sent command to ESP32: ${command}`);
     });
   }
 });
