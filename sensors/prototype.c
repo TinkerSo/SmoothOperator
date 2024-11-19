@@ -23,12 +23,16 @@ TaskHandle_t distance_measurement_task_handle = NULL;
 
 #define HC_SR04_TRIG_GPIO_FRONT  13
 #define HC_SR04_ECHO_GPIO_FRONT  12
-#define HC_SR04_TRIG_GPIO_LEFT   21
-#define HC_SR04_ECHO_GPIO_LEFT   14
 
 #define SERVO_TIMEBASE_RESOLUTION_HZ 1000000
 #define SERVO_TIMEBASE_PERIOD        20000
 
+// Pins for serial communication
+#define TXD_PIN 17
+#define RXD_PIN 16
+#define BUF_SIZE 1024
+
+// MOTOR
 static inline uint32_t example_angle_to_compare(int angle, bool invert) {
     if (invert) {
         angle = -angle;
@@ -74,6 +78,7 @@ void configure_servo(int gpio_pin, bool invert_angle, mcpwm_timer_handle_t *time
     ESP_ERROR_CHECK(mcpwm_timer_start_stop(*timer, MCPWM_TIMER_START_NO_STOP));
 }
 
+// LIDAR
 static bool hc_sr04_echo_callback(mcpwm_cap_channel_handle_t cap_chan, const mcpwm_capture_event_data_t *edata, void *user_data) {
     static uint32_t cap_val_begin_of_sample = 0;
     static uint32_t cap_val_end_of_sample = 0;
@@ -91,11 +96,66 @@ static bool hc_sr04_echo_callback(mcpwm_cap_channel_handle_t cap_chan, const mcp
     return high_task_wakeup == pdTRUE;
 }
 
-static void gen_trig(uint32_t trig_gpio) {
-    gpio_set_level(trig_gpio, 1);
-    esp_rom_delay_us(10);
-    gpio_set_level(trig_gpio, 0);
+void init_front_ultrasonic() {
+    ESP_LOGI(TAG, "Install capture timer");
+    mcpwm_cap_timer_handle_t cap_timer = NULL;
+    mcpwm_capture_timer_config_t cap_conf = {
+        .clk_src = MCPWM_CAPTURE_CLK_SRC_DEFAULT,
+        .group_id = 0,
+    };
+    ESP_ERROR_CHECK(mcpwm_new_capture_timer(&cap_conf, &cap_timer));
+
+    // front sensor channel
+    mcpwm_cap_channel_handle_t cap_chan_front = NULL;
+    mcpwm_capture_channel_config_t cap_ch_conf_front = {
+        .gpio_num = HC_SR04_ECHO_GPIO_FRONT,
+        .prescale = 1,
+        .flags = { .neg_edge = true, .pos_edge = true, .pull_up = true },
+    };
+    ESP_ERROR_CHECK(mcpwm_new_capture_channel(cap_timer, &cap_ch_conf_front, &cap_chan_front));
+
+    mcpwm_capture_event_callbacks_t cbs = {
+        .on_cap = hc_sr04_echo_callback,
+    };
+    ESP_ERROR_CHECK(mcpwm_capture_channel_register_event_callbacks(cap_chan_front, &cbs, xTaskGetCurrentTaskHandle()));
+
+    ESP_ERROR_CHECK(mcpwm_capture_channel_enable(cap_chan_front));
+
+    gpio_config_t io_conf = {
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << HC_SR04_TRIG_GPIO_FRONT),
+    };
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
+    gpio_set_level(HC_SR04_TRIG_GPIO_FRONT, 0);
+
+    ESP_ERROR_CHECK(mcpwm_capture_timer_enable(cap_timer));
+    ESP_ERROR_CHECK(mcpwm_capture_timer_start(cap_timer));
 }
+
+// void init_motor_components() {
+    // // Initialize motor control components
+    // mcpwm_timer_handle_t timer1 = NULL, timer2 = NULL;
+    // mcpwm_oper_handle_t oper1 = NULL, oper2 = NULL;
+    // mcpwm_cmpr_handle_t comparator1 = NULL, comparator2 = NULL;
+    // mcpwm_gen_handle_t generator1 = NULL, generator2 = NULL;
+
+    // configure_servo(SERVO_PULSE_GPIO_1, false, &timer1, &oper1, &comparator1, &generator1);
+    // configure_servo(SERVO_PULSE_GPIO_2, true, &timer2, &oper2, &comparator2, &generator2);
+
+    // // Initialize UART for command reception
+    // const int uart_num = UART_NUM_1;
+    // uart_config_t uart_config = {
+    //     .baud_rate = 115200,
+    //     .data_bits = UART_DATA_8_BITS,
+    //     .parity = UART_PARITY_DISABLE,
+    //     .stop_bits = UART_STOP_BITS_1,
+    //     .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    //     .source_clk = UART_SCLK_APB,
+    // };
+    // uart_driver_install(uart_num, BUF_SIZE * 2, 0, 0, NULL, 0);
+    // uart_param_config(uart_num, &uart_config);
+    // uart_set_pin(uart_num, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+// }
 
 void distance_measurement_task(void *pvParameters) {
     ESP_LOGI(TAG, "Install capture timer");
@@ -106,9 +166,7 @@ void distance_measurement_task(void *pvParameters) {
     };
     ESP_ERROR_CHECK(mcpwm_new_capture_timer(&cap_conf, &cap_timer));
 
-    ESP_LOGI(TAG, "Install capture channels");
-
-    // Front sensor channel
+    // front sensor channel
     mcpwm_cap_channel_handle_t cap_chan_front = NULL;
     mcpwm_capture_channel_config_t cap_ch_conf_front = {
         .gpio_num = HC_SR04_ECHO_GPIO_FRONT,
@@ -117,72 +175,49 @@ void distance_measurement_task(void *pvParameters) {
     };
     ESP_ERROR_CHECK(mcpwm_new_capture_channel(cap_timer, &cap_ch_conf_front, &cap_chan_front));
 
-    // Left sensor channel
-    mcpwm_cap_channel_handle_t cap_chan_left = NULL;
-    mcpwm_capture_channel_config_t cap_ch_conf_left = {
-        .gpio_num = HC_SR04_ECHO_GPIO_LEFT,
-        .prescale = 1,
-        .flags = { .neg_edge = true, .pos_edge = true, .pull_up = true },
-    };
-    ESP_ERROR_CHECK(mcpwm_new_capture_channel(cap_timer, &cap_ch_conf_left, &cap_chan_left));
-
-    ESP_LOGI(TAG, "Register capture callbacks");
     mcpwm_capture_event_callbacks_t cbs = {
         .on_cap = hc_sr04_echo_callback,
     };
     ESP_ERROR_CHECK(mcpwm_capture_channel_register_event_callbacks(cap_chan_front, &cbs, xTaskGetCurrentTaskHandle()));
-    ESP_ERROR_CHECK(mcpwm_capture_channel_register_event_callbacks(cap_chan_left, &cbs, xTaskGetCurrentTaskHandle()));
 
-    ESP_LOGI(TAG, "Enable capture channels");
     ESP_ERROR_CHECK(mcpwm_capture_channel_enable(cap_chan_front));
-    ESP_ERROR_CHECK(mcpwm_capture_channel_enable(cap_chan_left));
 
-    ESP_LOGI(TAG, "Configure Trig pins");
     gpio_config_t io_conf = {
         .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = (1ULL << HC_SR04_TRIG_GPIO_FRONT) | (1ULL << HC_SR04_TRIG_GPIO_LEFT),
+        .pin_bit_mask = (1ULL << HC_SR04_TRIG_GPIO_FRONT),
     };
     ESP_ERROR_CHECK(gpio_config(&io_conf));
     gpio_set_level(HC_SR04_TRIG_GPIO_FRONT, 0);
-    gpio_set_level(HC_SR04_TRIG_GPIO_LEFT, 0);
 
-    ESP_LOGI(TAG, "Enable and start capture timer");
     ESP_ERROR_CHECK(mcpwm_capture_timer_enable(cap_timer));
     ESP_ERROR_CHECK(mcpwm_capture_timer_start(cap_timer));
 
-    uint32_t tof_ticks_front, tof_ticks_left;
-    float distance_front, distance_left;
+    uint32_t tof_ticks_front;
+    float distance_front;
 
     while (1) {
-        gen_trig(HC_SR04_TRIG_GPIO_FRONT);
+        gpio_set_level(HC_SR04_TRIG_GPIO_FRONT, 1);
+        esp_rom_delay_us(10);
+        gpio_set_level(HC_SR04_TRIG_GPIO_FRONT, 0);
+
         if (xTaskNotifyWait(0x00, ULONG_MAX, &tof_ticks_front, pdMS_TO_TICKS(1000)) == pdTRUE) {
             float pulse_width_us = tof_ticks_front * (1000000.0 / esp_clk_apb_freq());
             distance_front = pulse_width_us / 58.0;  // Conversion to centimeters
-            // if (distance_front <= 350.0) {           // Ignore very high values
-            //     ESP_LOGI(TAG, "Front sensor distance: %.2f cm", distance_front);
-            // } else {
-            //     ESP_LOGW(TAG, "Front sensor out of range");
-            // }
+            // front_distance = distance_front;
+            if (distance_front <= 350.0) {           // Ignore very high values
+                ESP_LOGI(TAG, "Front sensor distance: %.2f cm", distance_front);
+            } else {
+                ESP_LOGW(TAG, "Front sensor out of range");
+            }
         }
 
-        gen_trig(HC_SR04_TRIG_GPIO_LEFT);
-        if (xTaskNotifyWait(0x00, ULONG_MAX, &tof_ticks_left, pdMS_TO_TICKS(1000)) == pdTRUE) {
-            float pulse_width_us = tof_ticks_left * (1000000.0 / esp_clk_apb_freq());
-            distance_left = pulse_width_us / 58.0;   // Conversion to centimeters
-            // if (distance_left <= 350.0) {            // Ignore very high values
-            //     ESP_LOGI(TAG, "Left sensor distance: %.2f cm", distance_left);
-            // } else {
-            //     ESP_LOGW(TAG, "Left sensor out of range");
-            // }
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(500)); // Delay before the next measurement cycle
+        vTaskDelay(pdMS_TO_TICKS(10)); // Delay before the next measurement cycle
     }
 }
 
-
-
 void motor_control_task(void *pvParameters) {
+    init_front_ultrasonic();
+
     ESP_LOGI(TAG, "Setting up servos");
 
     mcpwm_timer_handle_t timer1 = NULL, timer2 = NULL;
@@ -198,179 +233,344 @@ void motor_control_task(void *pvParameters) {
     const int max_angle = 90;
     const int min_angle = -90;
 
-    const int uart_num = UART_NUM_0;
-    uart_driver_install(uart_num, 256, 0, 0, NULL, 0);
-    esp_vfs_dev_uart_use_driver(uart_num);
+    // UART configuration
+    const int uart_num = UART_NUM_1;
+    const uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
+    };
 
-    char inputChar;
+    uart_driver_install(uart_num, BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_param_config(uart_num, &uart_config);
+    uart_set_pin(uart_num, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
+    uint8_t* data = (uint8_t*) malloc(BUF_SIZE + 1);
     while (1) {
-        if (read(uart_num, &inputChar, 1) > 0) {
-            switch (inputChar) {
-                case 's':
-                    angle = 90;
+        // Read one byte from UART
+        int len = uart_read_bytes(UART_NUM_1, data, BUF_SIZE, 20 / portTICK_PERIOD_MS);
+        angle = 90;
+        if (len > 0) {
+            data[len] = 0;  // Null-terminate whatever we receive
+            switch (*data) {
+                case 'S':
                     ESP_LOGI(TAG, "Motor A and B moving forward, Angle: %d", angle);
+                    // Set the motor angles based on the command
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(angle, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(angle, true)));
                     break;
-                case 'w':
-                    angle = -90;
+                case 'W':
                     ESP_LOGI(TAG, "Motor A and B moving backward, Angle: %d", angle);
+                    // Set the motor angles based on the command
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(-angle, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-angle, true)));
                     break;
-                case 'd':
-                    turn_angle = 90;
-                    ESP_LOGI(TAG, "Motor A moving forward, Motor B moving backward, Turn Angle: %d", turn_angle);
-                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(turn_angle, false)));
-                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-turn_angle, true)));
-                    continue;
-                case 'a':
-                    turn_angle = -90;
-                    ESP_LOGI(TAG, "Motor A moving forward, Motor B moving backward, Turn Angle: %d", turn_angle);
-                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(turn_angle, false)));
-                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-turn_angle, true)));
-                    continue;
-                case 'x':
-                    angle = 0;
-                    ESP_LOGI(TAG, "Motor A and B stopping, Angle: %d", angle);
+                case 'D':
+                    ESP_LOGI(TAG, "Motor A turning right, Turn Angle: %d", angle);
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(-angle, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(angle, true)));
+                    break;
+                case 'A':
+                    ESP_LOGI(TAG, "Motor A turning left, Turn Angle: %d", angle);
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(angle, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-angle, true)));
+                    break;
+                case 'X':
+                    ESP_LOGI(TAG, "Motor A and B stopping.");
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(0, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(0, true)));
+                    break;
+                default:
+                    ESP_LOGW(TAG, "Unknown command received: %c", *data);
                     break;
             }
-            ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(angle, false)));
-            ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(angle, true)));
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
-void app_main(void) {
-    xTaskCreate(motor_control_task, "motor_control_task", 4096, NULL, 5, NULL);
-    xTaskCreate(distance_measurement_task, "distance_measurement_task", 4096, NULL, 5, &distance_measurement_task_handle);
+/// combined tasks
+
+void combined_task(void *pvParameters) {
+    ESP_LOGI(TAG, "Setting up servos and ultrasonic sensor");
+    // ULTRASONIC
+    ESP_LOGI(TAG, "Install capture timer");
+    mcpwm_cap_timer_handle_t cap_timer = NULL;
+    mcpwm_capture_timer_config_t cap_conf = {
+        .clk_src = MCPWM_CAPTURE_CLK_SRC_DEFAULT,
+        .group_id = 0,
+    };
+    ESP_ERROR_CHECK(mcpwm_new_capture_timer(&cap_conf, &cap_timer));
+
+    // front sensor channel
+    mcpwm_cap_channel_handle_t cap_chan_front = NULL;
+    mcpwm_capture_channel_config_t cap_ch_conf_front = {
+        .gpio_num = HC_SR04_ECHO_GPIO_FRONT,
+        .prescale = 1,
+        .flags = { .neg_edge = true, .pos_edge = true, .pull_up = true },
+    };
+    ESP_ERROR_CHECK(mcpwm_new_capture_channel(cap_timer, &cap_ch_conf_front, &cap_chan_front));
+
+    mcpwm_capture_event_callbacks_t cbs = {
+        .on_cap = hc_sr04_echo_callback,
+    };
+    ESP_ERROR_CHECK(mcpwm_capture_channel_register_event_callbacks(cap_chan_front, &cbs, xTaskGetCurrentTaskHandle()));
+
+    ESP_ERROR_CHECK(mcpwm_capture_channel_enable(cap_chan_front));
+
+    gpio_config_t io_conf = {
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << HC_SR04_TRIG_GPIO_FRONT),
+    };
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
+    gpio_set_level(HC_SR04_TRIG_GPIO_FRONT, 0);
+
+    ESP_ERROR_CHECK(mcpwm_capture_timer_enable(cap_timer));
+    ESP_ERROR_CHECK(mcpwm_capture_timer_start(cap_timer));
+    uint32_t tof_ticks_front;
+    float distance_front;
+
+    // // Initialize motor control components
+    mcpwm_timer_handle_t timer1 = NULL, timer2 = NULL;
+    mcpwm_oper_handle_t oper1 = NULL, oper2 = NULL;
+    mcpwm_cmpr_handle_t comparator1 = NULL, comparator2 = NULL;
+    mcpwm_gen_handle_t generator1 = NULL, generator2 = NULL;
+
+    configure_servo(SERVO_PULSE_GPIO_1, false, &timer1, &oper1, &comparator1, &generator1);
+    configure_servo(SERVO_PULSE_GPIO_2, true, &timer2, &oper2, &comparator2, &generator2);
+
+    // Initialize UART for command reception
+    const int uart_num = UART_NUM_1;
+    uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
+    };
+    uart_driver_install(uart_num, BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_param_config(uart_num, &uart_config);
+    uart_set_pin(uart_num, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    
+    ESP_LOGI(TAG, "Setting up servos");
+
+    int angle = 0;
+    int turn_angle = 0;
+    const int max_angle = 90;
+    const int min_angle = -90;
+    bool tooClose = false;
+
+    uint8_t* data = (uint8_t*) malloc(BUF_SIZE + 1);
+
+    //WHILE LOOP
+    while (1) {
+        gpio_set_level(HC_SR04_TRIG_GPIO_FRONT, 1);
+        esp_rom_delay_us(10);
+        gpio_set_level(HC_SR04_TRIG_GPIO_FRONT, 0);
+
+        // Read one byte from UART
+        int len = uart_read_bytes(UART_NUM_1, data, BUF_SIZE, 20 / portTICK_PERIOD_MS);
+        if (len > 0) {
+            data[len] = 0;  // Null-terminate whatever we receive
+        }
+        if (xTaskNotifyWait(0x00, ULONG_MAX, &tof_ticks_front, pdMS_TO_TICKS(1000)) == pdTRUE) {
+            float pulse_width_us = tof_ticks_front * (1000000.0 / esp_clk_apb_freq());
+            distance_front = pulse_width_us / 58.0;  // Conversion to centimeters
+            // front_distance = distance_front;
+            // if (distance_front <= 350.0) {           // Ignore very high values
+            // ESP_LOGI(TAG, "Front sensor distance: %.2f cm", distance_front);
+            // } else {
+                // ESP_LOGW(TAG, "Front sensor out of range");
+            // }
+            if (distance_front < 30 && (*data) == 'W'){
+                ESP_LOGI(TAG,"OBSTACLE IN SIGHT");
+                ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(0, false)));
+                ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(0, true)));
+                tooClose = true;
+            }else{
+                tooClose = false;
+            }
+        }
+
+        int angle = 90;
+        if (len > 0) {
+            switch (*data) {
+                case 'S':
+                    if (!tooClose){
+                        ESP_LOGI(TAG, "Motor A and B moving forward, Angle: %d", angle);
+                        // Set the motor angles based on the command
+                        ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(angle, false)));
+                        ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(angle, true)));
+                    }
+                    break;
+                case 'W':
+                    ESP_LOGI(TAG, "Motor A and B moving backward, Angle: %d", angle);
+                    // Set the motor angles based on the command
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(-angle, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-angle, true)));
+                    break;
+                case 'A':
+                    ESP_LOGI(TAG, "Motor A turning right, Turn Angle: %d", angle);
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(-angle, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(angle, true)));
+                    break;
+                case 'D':
+                    ESP_LOGI(TAG, "Motor A turning left, Turn Angle: %d", angle);
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(angle, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(-angle, true)));
+                    break;
+                case 'X':
+                    ESP_LOGI(TAG, "Motor A and B stopping.");
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator1, example_angle_to_compare(0, false)));
+                    ESP_ERROR_CHECK(mcpwm_comparator_set_compare_value(comparator2, example_angle_to_compare(0, true)));
+                    break;
+                default:
+                    ESP_LOGW(TAG, "Unknown command received: %c", *data);
+                    break;
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10)); // Delay before the next measurement cycle
+    }
+    
 }
 
-Above is good
+void app_main(void) {
+    xTaskCreate(combined_task,"combined_task",8092,NULL,5,NULL);
+    //xTaskCreate(motor_control_task, "motor_control_task", 4096, NULL, 5, NULL);
+    //xTaskCreate(distance_measurement_task, "distance_measurement_task", 4096, NULL, 5, &distance_measurement_task_handle);
+}
+
+// Above is good
 ////////////////////
 
+// #include "freertos/FreeRTOS.h"
+// #include "freertos/task.h"
+// #include "driver/gpio.h"
+// #include "driver/mcpwm.h"
+// #include "esp_log.h"
+// #include "esp_attr.h"
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/gpio.h"
-#include "driver/mcpwm.h"
-#include "esp_log.h"
-#include "esp_attr.h"
+// // GPIO definitions for ultrasonic and motor control
+// #define GPIO_ULTRASONIC_TRIG  13
+// #define GPIO_ULTRASONIC_ECHO  12
+// #define GPIO_MOTOR_A_PWM      33
+// #define GPIO_MOTOR_B_PWM      15
 
-// GPIO definitions for ultrasonic and motor control
-#define GPIO_ULTRASONIC_TRIG  13
-#define GPIO_ULTRASONIC_ECHO  12
-#define GPIO_MOTOR_A_PWM      33
-#define GPIO_MOTOR_B_PWM      15
+// #define DISTANCE_THRESHOLD_CM 20  // Threshold distance in centimeters
+// #define SPEED_OF_SOUND_CM_US  0.0343  // Speed of sound in cm/us
 
-#define DISTANCE_THRESHOLD_CM 20  // Threshold distance in centimeters
-#define SPEED_OF_SOUND_CM_US  0.0343  // Speed of sound in cm/us
+// static const char *TAG = "SmoothOperator";
 
-static const char *TAG = "SmoothOperator";
+// // Global flag to control motor state
+// volatile bool stop_motors_flag = false;
 
-// Global flag to control motor state
-volatile bool stop_motors_flag = false;
+// // Initialize GPIO for Ultrasonic Sensor
+// void ultrasonic_gpio_init() {
+//     gpio_set_direction(GPIO_ULTRASONIC_TRIG, GPIO_MODE_OUTPUT);
+//     gpio_set_direction(GPIO_ULTRASONIC_ECHO, GPIO_MODE_INPUT);
+//     gpio_set_level(GPIO_ULTRASONIC_TRIG, 0);
+// }
 
-// Initialize GPIO for Ultrasonic Sensor
-void ultrasonic_gpio_init() {
-    gpio_set_direction(GPIO_ULTRASONIC_TRIG, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_ULTRASONIC_ECHO, GPIO_MODE_INPUT);
-    gpio_set_level(GPIO_ULTRASONIC_TRIG, 0);
-}
+// // Send a pulse to the Ultrasonic Sensor
+// void send_ultrasonic_pulse() {
+//     gpio_set_level(GPIO_ULTRASONIC_TRIG, 1);
+//     esp_rom_delay_us(10);  // Send a 10us pulse
+//     gpio_set_level(GPIO_ULTRASONIC_TRIG, 0);
+// }
 
-// Send a pulse to the Ultrasonic Sensor
-void send_ultrasonic_pulse() {
-    gpio_set_level(GPIO_ULTRASONIC_TRIG, 1);
-    esp_rom_delay_us(10);  // Send a 10us pulse
-    gpio_set_level(GPIO_ULTRASONIC_TRIG, 0);
-}
+// // MCPWM configuration to stop motors
+// void stop_motors() {
+//     mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_MOTOR_A_PWM);
+//     mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_MOTOR_B_PWM);
 
-// MCPWM configuration to stop motors
-void stop_motors() {
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_MOTOR_A_PWM);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_MOTOR_B_PWM);
+//     mcpwm_config_t pwm_config = {
+//         .frequency = 1000,  // frequency = 1kHz
+//         .cmpr_a = 0,        // duty cycle of PWMxA = 0
+//         .cmpr_b = 0,        // duty cycle of PWMxB = 0
+//         .counter_mode = MCPWM_UP_COUNTER,
+//         .duty_mode = MCPWM_DUTY_MODE_0
+//     };
 
-    mcpwm_config_t pwm_config = {
-        .frequency = 1000,  // frequency = 1kHz
-        .cmpr_a = 0,        // duty cycle of PWMxA = 0
-        .cmpr_b = 0,        // duty cycle of PWMxB = 0
-        .counter_mode = MCPWM_UP_COUNTER,
-        .duty_mode = MCPWM_DUTY_MODE_0
-    };
+//     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
+// }
 
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
-}
+// // Task to monitor distance and control motor state
+// void ultrasonic_task(void *pvParameters) {
+//     uint32_t echo_start_time, echo_end_time, pulse_time_us;
+//     float distance_cm;
 
-// Task to monitor distance and control motor state
-void ultrasonic_task(void *pvParameters) {
-    uint32_t echo_start_time, echo_end_time, pulse_time_us;
-    float distance_cm;
+//     while (1) {
+//         send_ultrasonic_pulse();
+//         // Wait for echo high
+//         while (gpio_get_level(GPIO_ULTRASONIC_ECHO) == 0);
+//         echo_start_time = esp_timer_get_time();
 
-    while (1) {
-        send_ultrasonic_pulse();
-        // Wait for echo high
-        while (gpio_get_level(GPIO_ULTRASONIC_ECHO) == 0);
-        echo_start_time = esp_timer_get_time();
+//         // Wait for echo low
+//         while (gpio_get_level(GPIO_ULTRASONIC_ECHO) == 1);
+//         echo_end_time = esp_timer_get_time();
 
-        // Wait for echo low
-        while (gpio_get_level(GPIO_ULTRASONIC_ECHO) == 1);
-        echo_end_time = esp_timer_get_time();
+//         // Calculate pulse duration and distance
+//         pulse_time_us = echo_end_time - echo_start_time;
+//         distance_cm = (pulse_time_us * SPEED_OF_SOUND_CM_US) / 2;
 
-        // Calculate pulse duration and distance
-        pulse_time_us = echo_end_time - echo_start_time;
-        distance_cm = (pulse_time_us * SPEED_OF_SOUND_CM_US) / 2;
+//         if (distance_cm < DISTANCE_THRESHOLD_CM) {
+//             ESP_LOGI(TAG, "Object detected at %.2f cm, stopping motors", distance_cm);
+//             stop_motors_flag = true;
+//         } else {
+//             ESP_LOGI(TAG, "Distance: %.2f cm", distance_cm);
+//             stop_motors_flag = false;
+//         }
 
-        if (distance_cm < DISTANCE_THRESHOLD_CM) {
-            ESP_LOGI(TAG, "Object detected at %.2f cm, stopping motors", distance_cm);
-            stop_motors_flag = true;
-        } else {
-            ESP_LOGI(TAG, "Distance: %.2f cm", distance_cm);
-            stop_motors_flag = false;
-        }
+//         vTaskDelay(pdMS_TO_TICKS(100));  // Delay to prevent continuous triggering
+//     }
+// }
 
-        vTaskDelay(pdMS_TO_TICKS(100));  // Delay to prevent continuous triggering
-    }
-}
+// // Task to control the motors based on sensor inputs
+// void motor_control_task(void *pvParameters) {
+//     // Set up MCPWM for motor control
+//     mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_MOTOR_A_PWM);
+//     mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_MOTOR_B_PWM);
 
-// Task to control the motors based on sensor inputs
-void motor_control_task(void *pvParameters) {
-    // Set up MCPWM for motor control
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_MOTOR_A_PWM);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_MOTOR_B_PWM);
+//     // Configuration for the PWM operation
+//     mcpwm_config_t pwm_config = {
+//         .frequency = 1000,  // PWM frequency at 1kHz
+//         .cmpr_a = 0,        // Initial duty cycle for motor A at 0%
+//         .cmpr_b = 0,        // Initial duty cycle for motor B at 0%
+//         .counter_mode = MCPWM_UP_COUNTER,
+//         .duty_mode = MCPWM_DUTY_MODE_0
+//     };
 
-    // Configuration for the PWM operation
-    mcpwm_config_t pwm_config = {
-        .frequency = 1000,  // PWM frequency at 1kHz
-        .cmpr_a = 0,        // Initial duty cycle for motor A at 0%
-        .cmpr_b = 0,        // Initial duty cycle for motor B at 0%
-        .counter_mode = MCPWM_UP_COUNTER,
-        .duty_mode = MCPWM_DUTY_MODE_0
-    };
+//     // Initialize PWM with above settings
+//     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
 
-    // Initialize PWM with above settings
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);
-
-    // Main loop to control motor based on distance measurements
-    while (1) {
-        if (stop_motors_flag) {
-            // Stop motors if the flag is set
-            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 0);  // Set duty cycle to 0% for Motor A
-            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, 0);  // Set duty cycle to 0% for Motor B
-            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); // Set duty type to 0 which stops the motor
-            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
-        } else {
-            // Run motors if no object is detected
-            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 75);  // Set duty cycle to 75% for Motor A
-            mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, 75);  // Set duty cycle to 75% for Motor B
-            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); // Apply the duty cycle setting
-            mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
-        }
-        vTaskDelay(pdMS_TO_TICKS(100));  // Delay for 100ms before the next loop iteration
-    }
-}
+//     // Main loop to control motor based on distance measurements
+//     while (1) {
+//         if (stop_motors_flag) {
+//             // Stop motors if the flag is set
+//             mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 0);  // Set duty cycle to 0% for Motor A
+//             mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, 0);  // Set duty cycle to 0% for Motor B
+//             mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); // Set duty type to 0 which stops the motor
+//             mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
+//         } else {
+//             // Run motors if no object is detected
+//             mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 75);  // Set duty cycle to 75% for Motor A
+//             mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, 75);  // Set duty cycle to 75% for Motor B
+//             mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); // Apply the duty cycle setting
+//             mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
+//         }
+//         vTaskDelay(pdMS_TO_TICKS(100));  // Delay for 100ms before the next loop iteration
+//     }
+// }
 
 
-void app_main(void) {
-    ESP_LOGI(TAG, "Initializing...");
-    ultrasonic_gpio_init();
-    xTaskCreate(ultrasonic_task, "ultrasonic_task", 2048, NULL, 5, NULL);
-    xTaskCreate(motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
-}
+// void app_main(void) {
+//     ESP_LOGI(TAG, "Initializing...");
+//     ultrasonic_gpio_init();
+//     xTaskCreate(ultrasonic_task, "ultrasonic_task", 2048, NULL, 5, NULL);
+//     xTaskCreate(motor_control_task, "motor_control_task", 2048, NULL, 5, NULL);
+// }
