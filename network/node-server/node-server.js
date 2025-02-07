@@ -10,31 +10,36 @@
 // app.listen(PORT, () => {
 //   console.log(`Server running on http://localhost:${PORT}`);
 // });
+
 const express = require('express');
+const cors = require('cors'); // Import CORS middleware
+
 const app = express();
-const PORT = 3000; // You can change the port if needed
+const PORT = 3000; // Change if needed
 
-// Middleware to parse JSON request bodies
-app.use(express.json());
+// Enable CORS for all origins
+app.use(cors());
+app.use(express.json()); // Middleware to parse JSON
 
-// Endpoint to test the connection
+// Test Route
 app.get('/', (req, res) => {
   res.send('Hello from the Node server!');
 });
 
-// API endpoint to handle commands
+// Command Route
 app.post('/api/command', (req, res) => {
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
+  console.log('Received request:', req.body);
   const { command } = req.body;
+  
   if (!command) {
     return res.status(400).send({ error: 'Command is required' });
   }
+  
   console.log(`Received command: ${command}`);
   res.status(200).send({ message: `Command '${command}' received successfully` });
 });
 
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// Start Server (Listening on All Network Interfaces)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
 });

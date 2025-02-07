@@ -2,9 +2,12 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 export default function GamepadControls() {
+  const SERVER_URL = 'http://10.193.228.60:3000'; // Replace localhost with your actual IP
+
   const sendCommand = async (command) => {
     try {
-      await fetch('http://localhost:3000/api/command', {
+      console.log(`Sending command: ${command}`); // Log command before sending
+      await fetch(`${SERVER_URL}/api/command`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
