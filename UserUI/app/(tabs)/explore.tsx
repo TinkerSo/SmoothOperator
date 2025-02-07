@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 export default function GamepadControls() {
   const sendCommand = async (command) => {
     try {
-      await fetch('https://your-backend-url.com/api/command', {
+      await fetch('http://localhost:3000/api/command', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
