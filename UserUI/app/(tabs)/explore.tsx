@@ -3,7 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 export default function GamepadControls() {
   const ws = useRef(null);
-  const SERVER_IP = 'ws://10.193.228.60:3000'; // Use your actual MacBook IP
+  // const SERVER_IP = 'ws://10.193.228.60:3000'; // Use your actual MacBook IP
+  // const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson Nano's IP on netgear
+  const SERVER_IP = 'ws://10.192.31.229:3000'; // Jetson Nano IP on BU Guest
 
   useEffect(() => {
     let retryCount = 0;
@@ -57,22 +59,22 @@ export default function GamepadControls() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={() => sendCommand('up')}>
+      <TouchableOpacity style={styles.button} onPress={() => sendCommand('w')}>
         <Text style={styles.buttonText}>⬆️</Text>
       </TouchableOpacity>
       <View style={styles.row}>
-        <TouchableOpacity style={styles.button} onPress={() => sendCommand('left')}>
+        <TouchableOpacity style={styles.button} onPress={() => sendCommand('a')}>
           <Text style={styles.buttonText}>⬅️</Text>
         </TouchableOpacity>
         <View style={styles.spacer} />
-        <TouchableOpacity style={styles.button} onPress={() => sendCommand('right')}>
+        <TouchableOpacity style={styles.button} onPress={() => sendCommand('d')}>
           <Text style={styles.buttonText}>➡️</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.button} onPress={() => sendCommand('down')}>
+      <TouchableOpacity style={styles.button} onPress={() => sendCommand('s')}>
         <Text style={styles.buttonText}>⬇️</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.stopButton} onPress={() => sendCommand('stop')}>
+      <TouchableOpacity style={styles.stopButton} onPress={() => sendCommand('x')}>
         <Text style={styles.buttonText}>🛑 Stop</Text>
       </TouchableOpacity>
     </View>
