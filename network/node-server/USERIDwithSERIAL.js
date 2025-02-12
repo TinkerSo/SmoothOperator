@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const WebSocket = require('ws');
-const SerialPort = require('serialport');
-const Readline = require('@serialport/parser-readline');
+const { SerialPort, ReadlineParser } = require('serialport');
+const { Readline } = require('@serialport/parser-readline');
 
 const app = express();
 const PORT = 3000;
@@ -12,8 +12,8 @@ const ESP32_SERIAL_PORT = '/dev/ttyTHS1';  // Change if needed
 const BAUD_RATE = 115200;
 
 // **Initialize Serial Connection with ESP32**
-const esp32Serial = new SerialPort(ESP32_SERIAL_PORT, { baudRate: BAUD_RATE });
-const parser = esp32Serial.pipe(new Readline({ delimiter: '\n' }));
+const esp32Serial = new SerialPort({ path: ESP32_SERIAL_PORT, baudRate: BAUD_RATE });
+const parser = esp32Serial.pipe(new ReadlineParser({ delimiter: '\n' }));
 
 // **Check if Serial Connection is Open**
 esp32Serial.on('open', () => {
