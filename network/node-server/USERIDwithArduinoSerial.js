@@ -1,5 +1,5 @@
-const SerialPort = require('serialport');
-const Readline = require('@serialport/parser-readline');
+const { SerialPort, ReadlineParser } = require('serialport');
+const { Readline } = require('@serialport/parser-readline');
 
 // Adjust the port name to match your system
 const port = new SerialPort('/dev/ttyACM0', {
