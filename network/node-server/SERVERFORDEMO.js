@@ -1,15 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const WebSocket = require('ws');
-const SerialPort = require('serialport');  // For UART Communication
+const SerialPort = require('serialport');
 const Readline = require('@serialport/parser-readline');
 
 const app = express();
 const PORT = 3000;
 
-// ✅ Arduino Serial Communication (Jetson Nano UART TX/RX)
+// ✅ Arduino Serial Communication (UART TX/RX on Jetson Nano)
 const ARDUINO_UART_PORT = '/dev/ttyTHS1';  // Jetson Nano UART Port (TX/RX Pins)
-const BAUD_RATE = 9600;
+const BAUD_RATE = 115200;
 
 const arduinoPort = new SerialPort(ARDUINO_UART_PORT, {
     baudRate: BAUD_RATE
@@ -29,12 +29,12 @@ parser.on('data', (data) => {
 app.use(cors());
 app.use(express.json());
 
-// ✅ Test Route (Check if the server is running)
+// ✅ Test Route
 app.get('/', (req, res) => {
     res.send('Hello from the Jetson Nano Node.js Server!');
 });
 
-// ✅ API to Send Commands to Arduino
+// ✅ API to Send Command to Arduino via UART
 app.post('/api/arduino', (req, res) => {
     const { command } = req.body;
 
@@ -70,7 +70,7 @@ wss.on('connection', (ws, req) => {
     ws.on('message', (message) => {
         console.log(`📡 Received WebSocket command: ${message}`);
 
-        // Forward command to Arduino
+        // Send command to Arduino via UART
         arduinoPort.write(message + '\n', (err) => {
             if (err) {
                 console.error(`⚠️ Error sending to Arduino: ${err}`);
