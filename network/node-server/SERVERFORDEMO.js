@@ -29,10 +29,15 @@ arduinoPort.on('error', (err) => {
     console.error(`SerialPort Error: ${err.message}`);
 });
 
-// UTF-8 Decoding
+// Force UTF-8 Decoding
 parser.on('data', (data) => {
-    const utf8Data = iconv.decode(Buffer.from(data, 'binary'), 'utf-8');
-    console.log(`Received from Arduino: ${utf8Data}`);
+    try {
+        const buffer = Buffer.from(data, 'binary');
+        const utf8Data = iconv.decode(buffer, 'utf-8');
+        console.log(`Received from Arduino: ${utf8Data}`);
+    } catch (err) {
+        console.error(`Decoding Error: ${err}`);
+    }
 });
 
 // Enable CORS & JSON Parsing Middleware
