@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const WebSocket = require('ws');
-const SerialPort = require('serialport');
-const Readline = require('@serialport/parser-readline');
+const { SerialPort } = require('serialport'); // ✅ Corrected for v13
+const { ReadlineParser } = require('@serialport/parser-readline'); // ✅ Corrected for v13
 
 const app = express();
 const PORT = 3000;
@@ -11,14 +11,21 @@ const PORT = 3000;
 const ARDUINO_UART_PORT = '/dev/ttyTHS1';  // Jetson Nano UART Port (TX/RX Pins)
 const BAUD_RATE = 115200;
 
-const arduinoPort = new SerialPort(ARDUINO_UART_PORT, {
-    baudRate: BAUD_RATE
+const arduinoPort = new SerialPort({
+    path: ARDUINO_UART_PORT,  // ✅ 'path' is required in v13
+    baudRate: BAUD_RATE,
+    autoOpen: true  // Automatically open the port on startup
 });
 
-const parser = arduinoPort.pipe(new Readline({ delimiter: '\n' }));
+// ✅ Use ReadlineParser for parsing incoming serial data
+const parser = arduinoPort.pipe(new ReadlineParser({ delimiter: '\n' }));
 
 arduinoPort.on('open', () => {
     console.log(`✅ UART connection established with Arduino on ${ARDUINO_UART_PORT}`);
+});
+
+arduinoPort.on('error', (err) => {
+    console.error(`⚠️ SerialPort Error: ${err.message}`);
 });
 
 parser.on('data', (data) => {
@@ -82,5 +89,9 @@ wss.on('connection', (ws, req) => {
 
     ws.on('close', () => {
         console.log(`🔹 WebSocket Client Disconnected: ${clientIP}`);
+    });
+
+    ws.on('error', (err) => {
+        console.error(`⚠️ WebSocket Error: ${err.message}`);
     });
 });
