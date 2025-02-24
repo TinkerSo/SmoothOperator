@@ -3,7 +3,7 @@ const cors = require('cors');
 const WebSocket = require('ws');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
-const iconv = require('iconv-lite'); 
+const iconv = require('iconv-lite');
 
 const app = express();
 const PORT = 3000;
@@ -29,12 +29,20 @@ arduinoPort.on('error', (err) => {
     console.error(`SerialPort Error: ${err.message}`);
 });
 
-// Force UTF-8 Decoding
+// Force UTF-8 Decoding from Arduino
 parser.on('data', (data) => {
     try {
-        const buffer = Buffer.from(data, 'binary');
+        // Convert binary data to buffer and decode as UTF-8
+        const buffer = Buffer.from(data, 'utf-8'); 
         const utf8Data = iconv.decode(buffer, 'utf-8');
         console.log(`Received from Arduino: ${utf8Data}`);
+
+        // Broadcast to WebSocket clients
+        wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(utf8Data); // Ensure UTF-8 is sent over WebSocket
+            }
+        });
     } catch (err) {
         console.error(`Decoding Error: ${err}`);
     }
@@ -49,7 +57,7 @@ app.get('/', (req, res) => {
     res.send('Hello from the Jetson Nano Node.js Server!');
 });
 
-// API to Send Commands to Arduino
+// API to Send Commands to Arduino with UTF-8 Encoding
 app.post('/api/arduino', (req, res) => {
     const { command } = req.body;
 
@@ -59,7 +67,10 @@ app.post('/api/arduino', (req, res) => {
 
     console.log(`Sending command to Arduino: ${command}`);
 
-    arduinoPort.write(command + '\n', (err) => {
+    // Convert command to UTF-8 before sending
+    const utf8Command = iconv.encode(command + '\n', 'utf-8');
+
+    arduinoPort.write(utf8Command, (err) => {
         if (err) {
             console.error(`Error writing to Arduino: ${err}`);
             return res.status(500).send({ error: 'Failed to send command to Arduino' });
@@ -86,7 +97,10 @@ wss.on('connection', (ws, req) => {
     ws.on('message', (message) => {
         console.log(`Received WebSocket command: ${message}`);
 
-        arduinoPort.write(message + '\n', (err) => {
+        // Convert message to UTF-8 before sending to Arduino
+        const utf8Message = iconv.encode(message + '\n', 'utf-8');
+
+        arduinoPort.write(utf8Message, (err) => {
             if (err) {
                 console.error(`Error sending to Arduino: ${err}`);
             } else {
