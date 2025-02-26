@@ -1,83 +1,113 @@
-#include <RoboClaw.h>
+#include "RoboClaw.h"
 #include <SoftwareSerial.h>
+#include <Adafruit_NeoPixel.h>
 
-// SoftwareSerial configuration
-SoftwareSerial softwareSerial(10, 11); // RX on pin 10, TX on pin 11
+// NeoPixel Configuration
+#define LED_PIN    6   
+#define LED_COUNT  300  
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-// RoboClaw configuration
-#define address 0x80  // Default address of the RoboClaw as set on the device
-#define baudrate 38400 // Set this to match the baud rate of your RoboClaw
+// RoboClaw Configuration
+SoftwareSerial softwareSerial(10, 11); 
+#define address 0x80
+#define baudrate 38400
+RoboClaw roboclaw(&softwareSerial, 10000);
 
-// Ultrasonic sensor variables
-int SonarPin = A0; // Example pin for an ultrasonic sensor
+// Ultrasonic Sensor Pin (using only A0)
+// #define SONAR_PIN A0
+#define SONAR_PIN1 A0
+int sensorValue1;
+float Inch1=0.00;
+float cm1=0.00;
+
+
 float threshold = 20.0; // Threshold distance in cm
-int sensorValue = 0;
-float distance = 0.0;
-
-// Create RoboClaw instance using SoftwareSerial
-RoboClaw roboclaw(&softwareSerial, 10000); // Second parameter is the timeout
+float cmDistance = 0.0;
+float conversionFactor = 0.497 * 2.54; // approximately 1.259
 
 void setup() {
-  // Initialize serial communication with the computer
   Serial.begin(115200);
-  Serial.println("Serial communication started on the main serial port.");
+  
+  while (!Serial) {}  
+  // Initialize NeoPixels
+  strip.begin();
+  strip.show();
+  strip.setBrightness(80);
+  setLEDs(strip.Color(255, 0, 0)); 
+  pinMode(SONAR_PIN1,INPUT);
+  float Inch1=0.00;
+  float cm1=0.00;
 
-  // Initialize SoftwareSerial communication
+  // Initialize RoboClaw
   softwareSerial.begin(baudrate);
   roboclaw.begin(baudrate);
-
-  // Set up ultrasonic sensor
-  pinMode(SonarPin, INPUT);
 }
 
 void loop() {
-  // Check if there is incoming data
-  if (Serial.available() > 0) {
-    // Read the incoming data as a string
-    String received = Serial.readStringUntil('\n');
+  // Read ultrasonic sensor (A0) and convert to cm
+  sensorValue1=analogRead(SONAR_PIN1);
+  Inch1= (sensorValue1*0.497);
+  cm1=Inch1*2.54;
+  // Serial.println(cm1);
 
-    // Print the received data to the serial monitor
-    Serial.print("Received: ");
-    Serial.println(received.trim());
-
-    // Parse command and control motors
-    controlMotors(received.trim());
-  }
-}
-
-void controlMotors(String command) {
-  // Read the ultrasonic sensor
-  sensorValue = analogRead(SonarPin);
-  distance = sensorValue * 0.497 * 2.54; // Convert sensor value to distance in cm
-
-  if (distance <= threshold) {
-    // If an obstacle is detected within the threshold, stop the motors
-    roboclaw.ForwardBackwardM1(address, 64); // Stop Motor 1
-    roboclaw.ForwardBackwardM2(address, 64); // Stop Motor 2
-    Serial.println("Obstacle detected. Motors stopping.");
-    return; // Early return to prevent executing movement commands
-  }
-
-  // Execute motor commands only if no obstacle is detected
-  if (command == "w") {
-    roboclaw.ForwardBackwardM1(address, 127);
-    roboclaw.ForwardBackwardM2(address, 127);
-    Serial.println("Motors moving forward");
-  } else if (command == "s") {
-    roboclaw.ForwardBackwardM1(address, 0);
-    roboclaw.ForwardBackwardM2(address, 0);
-    Serial.println("Motors moving backward");
-  } else if (command == "a") {
-    roboclaw.ForwardBackwardM1(address, 127);
-    roboclaw.ForwardBackwardM2(address, 0);
-    Serial.println("Turning left");
-  } else if (command == "d") {
-    roboclaw.ForwardBackwardM1(address, 0);
-    roboclaw.ForwardBackwardM2(address, 127);
-    Serial.println("Turning right");
-  } else if (command == "x") {
+  // Check for obstacles
+  if (false) {
+  // if (cmDistance < threshold) {
+    strip.fill(strip.Color(255, 0, 0));
+    strip.show();
+    // Stop MOtors
     roboclaw.ForwardBackwardM1(address, 64);
     roboclaw.ForwardBackwardM2(address, 64);
-    Serial.println("Motors braking");
+    setLEDs(strip.Color(255, 0, 0));
+    delay(50);
+    return;
   }
+
+  // Check for keyboard input
+  if (Serial.available()) {
+    char command = Serial.read();  // Read single character
+
+    switch (command) {
+      case 'w':
+        roboclaw.ForwardBackwardM1(address, 94); 
+        roboclaw.ForwardBackwardM2(address, 94); 
+        setLEDs(strip.Color(0, 255, 0));  // Green for movement
+        break;
+      case 's':
+        roboclaw.ForwardBackwardM1(address, 33); 
+        roboclaw.ForwardBackwardM2(address, 33); 
+        setLEDs(strip.Color(0, 255, 0));  
+        break;
+      case 'a':
+        roboclaw.ForwardBackwardM1(address, 94); 
+        roboclaw.ForwardBackwardM2(address, 33); 
+        setLEDs(strip.Color(0, 255, 0));  
+        break;
+      case 'd':
+        roboclaw.ForwardBackwardM1(address, 33); 
+        roboclaw.ForwardBackwardM2(address, 94); 
+        setLEDs(strip.Color(0, 255, 0));  
+        break;
+      case 'x':
+        roboclaw.ForwardBackwardM1(address, 64);
+        roboclaw.ForwardBackwardM2(address, 64);
+        setLEDs(strip.Color(255, 0, 0));
+        break;
+      default:
+        // Ignore unknown keys
+        break;
+    }
+
+    // Flush serial buffer
+    while (Serial.available()) Serial.read();
+  }
+
+  delay(50);
+}
+
+
+// Set LEDs
+void setLEDs(uint32_t color) {
+  strip.fill(color);
+  strip.show();
 }
