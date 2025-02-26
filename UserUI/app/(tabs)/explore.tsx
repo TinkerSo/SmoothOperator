@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 export default function GamepadControls() {
   const ws = useRef(null);
-  // const SERVER_IP = 'ws://10.193.228.60:3000'; // Use your actual MacBook IP
-  // const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson Nano's IP on netgear
-  const SERVER_IP = 'ws://10.192.31.229:3000'; // Jetson Nano IP on BU Guest
+  const intervalRef = useRef(null);
+  // Use your desired server IP address here
+  const SERVER_IP = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
+  // const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson on Netgear
 
   useEffect(() => {
     let retryCount = 0;
@@ -17,7 +18,7 @@ export default function GamepadControls() {
 
       ws.current.onopen = () => {
         console.log('✅ Connected to WebSocket server');
-        retryCount = 0; // Reset retry count on successful connection
+        retryCount = 0;
       };
 
       ws.current.onmessage = (event) => {
@@ -47,7 +48,6 @@ export default function GamepadControls() {
     };
   }, []);
 
-  // Send a movement command via WebSocket
   const sendCommand = (command) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(command);
@@ -57,21 +57,45 @@ export default function GamepadControls() {
     }
   };
 
+  const handlePressIn = (command) => {
+    sendCommand(command);
+  };
+
+  const handlePressOut = () => {
+    sendCommand('x'); // Send stop command when released
+  };
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={() => sendCommand('w')}>
+      <TouchableOpacity
+        style={styles.button}
+        onPressIn={() => handlePressIn('w')}
+        onPressOut={handlePressOut}
+      >
         <Text style={styles.buttonText}>⬆️</Text>
       </TouchableOpacity>
       <View style={styles.row}>
-        <TouchableOpacity style={styles.button} onPress={() => sendCommand('a')}>
+        <TouchableOpacity
+          style={styles.button}
+          onPressIn={() => handlePressIn('a')}
+          onPressOut={handlePressOut}
+        >
           <Text style={styles.buttonText}>⬅️</Text>
         </TouchableOpacity>
         <View style={styles.spacer} />
-        <TouchableOpacity style={styles.button} onPress={() => sendCommand('d')}>
+        <TouchableOpacity
+          style={styles.button}
+          onPressIn={() => handlePressIn('d')}
+          onPressOut={handlePressOut}
+        >
           <Text style={styles.buttonText}>➡️</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.button} onPress={() => sendCommand('s')}>
+      <TouchableOpacity
+        style={styles.button}
+        onPressIn={() => handlePressIn('s')}
+        onPressOut={handlePressOut}
+      >
         <Text style={styles.buttonText}>⬇️</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.stopButton} onPress={() => sendCommand('x')}>
@@ -95,7 +119,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   spacer: {
-    width: 130, // Adjust the space between left and right arrows
+    width: 130,
   },
   button: {
     width: 80,
