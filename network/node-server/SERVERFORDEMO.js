@@ -79,13 +79,14 @@ app.post('/api/arduino', (req, res) => {
 });
 
 // API endpoint for ROS robot_command listener to send vx, vy, vtheta for autonomous drive
-app.post('/api/ros', (req, res) => {
-    const { data } = req.body;
+app.use(express.text());  // Add this at the top with other middleware
 
-    if (!data || typeof data !== 'string') {
+app.post('/api/ros', (req, res) => {
+    const data = req.body.trim();  // Extract raw text data
+
+    if (!data) {
         return res.status(400).send({ error: 'Invalid data format' });
     }
-
     console.log(`Received from ROS: ${data}`);
 });
 
