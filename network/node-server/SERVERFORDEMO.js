@@ -78,6 +78,17 @@ app.post('/api/arduino', (req, res) => {
     });
 });
 
+// API endpoint for ROS robot_command listener to send vx, vy, vtheta for autonomous drive
+app.post('/api/ros', (req, res) => {
+    const { data } = req.body;
+
+    if (!data || typeof data !== 'string') {
+        return res.status(400).send({ error: 'Invalid data format' });
+    }
+
+    console.log(`Received from ROS: ${data}`);
+});
+
 
 // Start HTTP Server
 const server = app.listen(PORT, '0.0.0.0', () => {
