@@ -51,17 +51,23 @@ app.get('/', (req, res) => {
     res.send('Hello from the Jetson Nano Node.js Server!');
 });
 
+function isValidCommand(command) {
+    // Ensure the command is a single character and one of the allowed ones
+    return typeof command === 'string' && /^[wasd]$/.test(command);
+}
+
 // API to Send Commands to Arduino with UTF-8 Encoding
 app.post('/api/arduino', (req, res) => {
-    const { command } = req.body;
-
-    if (!command) {
-        return res.status(400).send({ error: 'Command is required' });
+    let { command } = req.body;
+    
+    if (!command || !isValidCommand(command.trim())) {
+        return res.status(400).send({ error: 'Invalid command. Only "w", "a", "s", and "d" are allowed.' });
     }
+    
+    command = command.trim();  // Remove any extra whitespace
 
     console.log(`Sending command to Arduino: ${command}`);
 
-    // Directly write UTF-8 encoded data
     arduinoPort.write(`${command}\n`, 'utf8', (err) => {
         if (err) {
             console.error(`Error writing to Arduino: ${err}`);
@@ -71,6 +77,7 @@ app.post('/api/arduino', (req, res) => {
         res.status(200).send({ message: `Command '${command}' sent successfully` });
     });
 });
+
 
 // Start HTTP Server
 const server = app.listen(PORT, '0.0.0.0', () => {
