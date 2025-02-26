@@ -45,6 +45,7 @@ parser.on('data', (data) => {
 // Enable CORS & JSON Parsing Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.text()); 
 
 // Test Route
 app.get('/', (req, res) => {
@@ -79,8 +80,6 @@ app.post('/api/arduino', (req, res) => {
 });
 
 // API endpoint for ROS robot_command listener to send vx, vy, vtheta for autonomous drive
-app.use(express.text());  // Add this at the top with other middleware
-
 app.post('/api/ros', (req, res) => {
     const data = req.body.trim();  // Extract raw text data
 
