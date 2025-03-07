@@ -10,7 +10,27 @@ RoboClaw roboclaw(&serial,10000);
 
 #define address 0x80
 
-// Convert encoder reading to distance in meters
+const char ENCODER_START_BYTE = 0xFF; // Message start byte for encoder data
+const char ENCODER_END_BYTE = 0xEE; // Message end byte for encoder data
+
+// Send both displacement and velocity readings through serial
+void sendData(int32_t displacement, int32_t velocity) {
+  Serial.write(ENCODER_START_BYTE);
+  // Sending displacement one byte at a time starting from MSB
+  Serial.write((displacement >> 24) & 0xFF);
+  Serial.write((displacement >> 16) & 0xFF);
+  Serial.write((displacement >> 8) & 0xFF);
+  Serial.write(displacement & 0xFF);
+  // Sending velocity one byte at a time starting from MSB
+  Serial.write((velocity >> 24) & 0xFF);
+  Serial.write((velocity >> 16) & 0xFF);
+  Serial.write((velocity >> 8) & 0xFF);
+  Serial.write(velocity & 0xFF);
+  // Sending end byte
+  Serial.write(ENCODER_END_BYTE);
+}
+
+// Convert encoder reading to displacement in meters
 double convertReadingToDistance(int32_t reading) {
   float numerator = (2 * 3.14 * (.1016 / 2)) / 8192;
   return numerator * reading;
@@ -27,18 +47,16 @@ void displayspeed(void)
   bool valid1,valid2;
   int32_t enc1 = roboclaw.ReadEncM1(address, &status1, &valid1);
   int32_t speed1 = roboclaw.ReadSpeedM1(address, &status2, &valid2);
-  char* message =(char*) malloc(sizeof(char) * );
-
+  double displacement, velocity;
+  
   // Convert enc1 reading to revolution
   if(valid1){
     Serial.print("Encoder1:");
     Serial.print(enc1,DEC);
     Serial.print(" ");
-    Serial.print(convertReadingToDistance(enc1));
+    displacement = convertReadingToDistance(enc1);
+    Serial.print(displacement);
     Serial.print(" Meters moved.");
-    Serial.print(" ");
-    Serial.print(convertReadingToVelocity(speed1));
-    Serial.print(" m/s");
     Serial.print(" ");
     Serial.print(status1,HEX);
     Serial.print(" ");
@@ -47,8 +65,24 @@ void displayspeed(void)
     Serial.print("Speed1:");
     Serial.print(speed1,DEC);
     Serial.print(" ");
+    velocity = convertReadingToVelocity(speed1);
+    Serial.print(velocity);
+    Serial.print(" m/s");
+    Serial.print(" ");
   }
   
+  if (valid1 && valid2) {
+    // Both readings are valid
+    sendData(displacement, velocity);
+  }
+  else if (valid1) {
+    // Only displacement is valid
+    sendData(displacement, 0);
+  }
+  else {
+    // Only velocity is valid
+    sendData(0, velocity);
+  }
   Serial.println();
 }
 
