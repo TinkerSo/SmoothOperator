@@ -1,9 +1,9 @@
 import threading
 import time
 import websocket
-# import cv2
-# import numpy as np
-# from pyzbar.pyzbar import decode
+import cv2
+import numpy as np
+from pyzbar.pyzbar import decode
 
 from kivy.app import App
 from kivy.uix.screenmanager import Screen, ScreenManager
@@ -16,86 +16,107 @@ from kivy.graphics import Ellipse, Color
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.camera import Camera
+from kivy.graphics.texture import Texture
+from kivy.graphics.context_instructions import Rotate, PushMatrix, PopMatrix
 
 
 # ------------------ FaceScreen and MenuScreen ------------------
-
 class FaceScreen(Widget):
     def __init__(self, switch_screen_callback, **kwargs):
         super().__init__(**kwargs)
         self.switch_screen_callback = switch_screen_callback
         self.blinking = False
-        self.eye_size = (120, 200)  # Slightly larger eyes
-        self.default_eye_pos = {'left': (-120, 0), 'right': (40, 0)}
-        
+
+        # Adjust eye size and spacing relative to the window size
+        self.eye_size = (Window.width * 0.25, Window.height * 0.5)  # 25% of width, 50% of height
+        self.eye_spacing = Window.width * 0.5  # Space between eyes
+
+        # Eye movement offsets
+        self.eye_offset_x = 0
+        self.eye_offset_y = 0
+
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
         if self._keyboard:
             self._keyboard.bind(on_key_down=self.on_key_down)
             self._keyboard.bind(on_key_up=self.on_key_up)
-        
+
         with self.canvas:
             Color(0, 191/255, 255/255)
             self.left_eye = Ellipse(size=self.eye_size)
             self.right_eye = Ellipse(size=self.eye_size)
-        
+
         self.update_positions()
-        self.bind(pos=self.update_positions, size=self.update_positions)
+        self.bind(pos=self.update_positions, size=self.on_resize)
         Clock.schedule_interval(self.blink, 3)
-    
+
     def _keyboard_closed(self):
         if self._keyboard:
             self._keyboard.unbind(on_key_down=self.on_key_down)
             self._keyboard.unbind(on_key_up=self.on_key_up)
             self._keyboard = None
-    
+
     def update_positions(self, *args):
-        self.left_eye.pos = (
-            self.center_x + self.default_eye_pos['left'][0],
-            self.center_y + self.default_eye_pos['left'][1]
-        )
-        self.right_eye.pos = (
-            self.center_x + self.default_eye_pos['right'][0],
-            self.center_y + self.default_eye_pos['right'][1]
-        )
-    
+        """ Ensure eyes are correctly positioned and spaced properly. """
+        left_x = self.center_x - self.eye_spacing / 2 - self.eye_size[0] / 2 + self.eye_offset_x
+        right_x = self.center_x + self.eye_spacing / 2 - self.eye_size[0] / 2 + self.eye_offset_x
+
+        left_y = self.center_y - self.eye_size[1] / 2 + self.eye_offset_y
+        right_y = self.center_y - self.eye_size[1] / 2 + self.eye_offset_y
+
+        self.left_eye.pos = (left_x, left_y)
+        self.right_eye.pos = (right_x, right_y)
+
+    def on_resize(self, *args):
+        """ Recalculate size and position dynamically when window resizes. """
+        self.eye_size = (Window.width * 0.25, Window.height * 0.5)  # Keep eyes proportionally large
+        self.eye_spacing = Window.width * 0.5  # Maintain spacing
+
+        self.left_eye.size = self.eye_size
+        self.right_eye.size = self.eye_size
+
+        self.update_positions()
+
+    def on_key_down(self, keyboard, keycode, text, modifiers):
+        """ Move eyes based on keyboard input. """
+        movement_x = 30  # Move horizontally
+        movement_y = 20  # Move vertically
+
+        if keycode[1] == 'w':  # Move Up
+            self.eye_offset_y += movement_y
+        elif keycode[1] == 's':  # Move Down
+            self.eye_offset_y -= movement_y
+        elif keycode[1] == 'a':  # Move Left
+            self.eye_offset_x -= movement_x
+        elif keycode[1] == 'd':  # Move Right
+            self.eye_offset_x += movement_x
+
+        self.update_positions()
+
+    def on_key_up(self, keyboard, keycode):
+        """ Reset eyes to default position when key is released. """
+        self.eye_offset_x = 0
+        self.eye_offset_y = 0
+        self.update_positions()
+
     def blink(self, dt):
+        """ Simulate blinking by reducing eye height. """
         if not self.blinking:
-            self.left_eye.size = (120, 20)
-            self.right_eye.size = (120, 20)
+            self.left_eye.size = (self.eye_size[0], self.eye_size[1] * 0.1)
+            self.right_eye.size = (self.eye_size[0], self.eye_size[1] * 0.1)
             self.blinking = True
             Clock.schedule_once(self.unblink, 0.2)
-    
+
     def unblink(self, dt):
+        """ Restore eyes to original size after blinking. """
         self.left_eye.size = self.eye_size
         self.right_eye.size = self.eye_size
         self.blinking = False
-    
+
     def on_touch_down(self, touch):
-        # Switch to menu screen when touched
+        """ Switch to the menu screen when the screen is tapped. """
         self.switch_screen_callback()
-    
-    def on_key_down(self, keyboard, keycode, text, modifiers):
-        movement_x = 80
-        movement_y = 50
-        
-        movements = {
-            'w': (0, movement_y),
-            's': (0, -movement_y),
-            'a': (-movement_x, 0),
-            'd': (movement_x, 0)
-        }
-        
-        if keycode[1] in movements:
-            dx, dy = movements[keycode[1]]
-            self.default_eye_pos['left'] = (-120 + dx, dy)
-            self.default_eye_pos['right'] = (40 + dx, dy)
-            self.update_positions()
-    
-    def on_key_up(self, keyboard, keycode):
-        self.default_eye_pos = {'left': (-120, 0), 'right': (40, 0)}
-        self.update_positions()
 
-
+# ------------------ MenuScreen ------------------
 class MenuScreen(BoxLayout):
     def __init__(self, switch_to_manual, switch_to_qr, **kwargs):
         super().__init__(orientation='vertical', **kwargs)
@@ -113,8 +134,7 @@ class MenuScreen(BoxLayout):
                 on_press=lambda x: switch_to_qr()
             )
         )
-
-
+        
 # ------------------ Manual Control Screen ------------------
 
 class WebSocketClient:
@@ -291,53 +311,61 @@ class ManualControlScreen(Screen):
 
 # ------------------ QR Code Reader Screen ------------------
 
+from kivy.graphics.texture import Texture
+from kivy.uix.image import Image
+from kivy.clock import Clock
+
 class QRScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Create a vertical layout for the camera and result label
-        layout = BoxLayout(orientation='vertical')
-        
-    #     # Create and add the camera widget.
-    #     # Adjust the resolution as needed.
-    #     self.camera = Camera(play=True, resolution=(640, 480))
-    #     layout.add_widget(self.camera)
-        
-    #     # Create a label to display QR code results.
-    #     self.result_label = Label(
-    #         text="Point the camera at a QR code",
-    #         size_hint=(1, 0.2),
-    #         font_size=24
-    #     )
-    #     layout.add_widget(self.result_label)
-        
-    #     self.add_widget(layout)
-        
-    #     # Schedule a periodic callback to decode QR codes from the camera feed.
-    #     Clock.schedule_interval(self.decode_qr, 1/5.0)  # 5 times per second
 
-    # def decode_qr(self, dt):
-    #     if not self.camera.texture:
-    #         return
-        
-    #     # Retrieve the texture from the camera widget.
-    #     texture = self.camera.texture
-    #     # Get the pixel data as bytes and convert to a NumPy array.
-    #     buf = texture.pixels  # RGBA data
-    #     data = np.frombuffer(buf, np.uint8)
-    #     data = data.reshape(texture.height, texture.width, 4)
-        
-    #     # Convert the image from RGBA to grayscale using OpenCV.
-    #     gray = cv2.cvtColor(data, cv2.COLOR_RGBA2GRAY)
-        
-    #     # Use pyzbar to decode any QR codes in the grayscale image.
-    #     results = decode(gray)
-        
-    #     if results:
-    #         # If a QR code is found, display its data.
-    #         qr_data = results[0].data.decode('utf-8')
-    #         self.result_label.text = "QR Code: " + qr_data
-    #     else:
-    #         self.result_label.text = "No QR Code detected"
+        # Create a vertical layout
+        layout = BoxLayout(orientation='vertical')
+
+        # Create the Camera widget
+        self.camera = Camera(play=True, resolution=(640, 480))
+        self.camera.allow_stretch = True  # Ensure the camera resizes properly
+        # layout.add_widget(self.camera)
+
+        # Create an Image widget to display the rotated camera texture
+        self.image_display = Image()
+        layout.add_widget(self.image_display)
+
+        # Create a label to display QR code results
+        self.result_label = Label(
+            text="Point the camera at a QR code",
+            size_hint=(1, 0.2),
+            font_size=24
+        )
+        layout.add_widget(self.result_label)
+
+        self.add_widget(layout)
+
+        # Schedule a function to update the camera feed with rotation
+        Clock.schedule_interval(self.update_texture, 1/30)  # 30 FPS
+
+    def update_texture(self, dt):
+        if not self.camera.texture:
+            return
+
+        # Get the camera texture and convert to OpenCV format
+        texture = self.camera.texture
+        w, h = texture.size
+        pixels = texture.pixels  # Get raw pixel data
+
+        # Convert the raw data to a NumPy array
+        frame = np.frombuffer(pixels, np.uint8).reshape(h, w, 4)  # RGBA format
+
+        # Rotate the image 90 degrees clockwise
+        rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+        # Create a new Kivy texture
+        new_texture = Texture.create(size=(h, w))  # Swap w and h after rotation
+        new_texture.blit_buffer(rotated_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
+
+        # Apply the new texture to the Image widget
+        self.image_display.texture = new_texture
+
 
 
 # ------------------ Main Application ------------------
