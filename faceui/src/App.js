@@ -1,15 +1,14 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LandingPage from './LandingPage';
 import InteractionPage from './InteractionPage';
+import Face from './Face';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/interaction" element={<InteractionPage />} />
+        <Route path="/" element={<Face />} />
       </Routes>
     </Router>
   );

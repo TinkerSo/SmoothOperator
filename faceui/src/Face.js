@@ -1,9 +1,10 @@
-// src/Face.js
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Face.css';
 
 const Face = () => {
   const faceRef = useRef(null);
+  const navigate = useNavigate();
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [blinking, setBlinking] = useState(false);
 
@@ -23,14 +24,10 @@ const Face = () => {
   };
 
   useEffect(() => {
-    const faceNode = faceRef.current;
-    if (faceNode) {
-      faceNode.addEventListener('mousemove', handleMouseMove);
-    }
+    const handleMouseMoveEvent = (event) => handleMouseMove(event);
+    window.addEventListener('mousemove', handleMouseMoveEvent);
     return () => {
-      if (faceNode) {
-        faceNode.removeEventListener('mousemove', handleMouseMove);
-      }
+      window.removeEventListener('mousemove', handleMouseMoveEvent);
     };
   }, []);
 
@@ -51,15 +48,22 @@ const Face = () => {
     };
   }, []);
 
+  const handleScreenClick = () => {
+    navigate('/InteractionPage'); // Update this with the correct route
+  };
+
   const eyeStyle = {
     transform: `translate(${offset.x}px, ${offset.y}px) ${blinking ? 'scaleY(0.1)' : ''}`,
+    width: '60px',
+    height: '140px',
+    borderRadius: '50%',
+    transition: 'transform 0.1s ease-out',
   };
 
   return (
-    <div className="face" ref={faceRef}>
+    <div className="face-container" onClick={handleScreenClick} ref={faceRef}>
       <div className="eye left-eye" style={eyeStyle}></div>
       <div className="eye right-eye" style={eyeStyle}></div>
-      <div className="smile"></div>
     </div>
   );
 };
