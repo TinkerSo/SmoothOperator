@@ -134,7 +134,7 @@ class MenuScreen(BoxLayout):
                 on_press=lambda x: switch_to_qr()
             )
         )
-        
+
 # ------------------ Manual Control Screen ------------------
 
 class WebSocketClient:
@@ -356,14 +356,21 @@ class QRScreen(Screen):
         # Convert the raw data to a NumPy array
         frame = np.frombuffer(pixels, np.uint8).reshape(h, w, 4)  # RGBA format
 
-        # Rotate the image 90 degrees clockwise
+        # Rotate the image 90 degrees counterclockwise
         rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-        # Create a new Kivy texture
+        # Decode any QR codes in the rotated frame
+        results = decode(rotated_frame)
+        if results:
+            # Display the first decoded QR code result
+            qr_text = results[0].data.decode('utf-8')
+            self.result_label.text = f"QR Code: {qr_text}"
+        else:
+            self.result_label.text = "Point the camera at a QR code"
+
+        # Create a new Kivy texture and apply it to the image widget
         new_texture = Texture.create(size=(h, w))  # Swap w and h after rotation
         new_texture.blit_buffer(rotated_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
-
-        # Apply the new texture to the Image widget
         self.image_display.texture = new_texture
 
 
