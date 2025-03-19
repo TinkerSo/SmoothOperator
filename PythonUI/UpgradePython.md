@@ -8,9 +8,9 @@ This guide provides step-by-step instructions to upgrade Python to version **3.1
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y software-properties-common build-essential \\
-    zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev \\
-    libssl-dev libreadline-dev libffi-dev libsqlite3-dev \\
+sudo apt install -y software-properties-common build-essential \
+    zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev \
+    libssl-dev libreadline-dev libffi-dev libsqlite3-dev \
     libbz2-dev curl wget
 cd /usr/src
 sudo wget https://www.python.org/ftp/python/3.11.2/Python-3.11.2.tgz
