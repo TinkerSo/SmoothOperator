@@ -1,4 +1,4 @@
-# Create a Markdown file with the Python upgrade instructions
+# Python upgrade instructions
 
 md_content = """# Upgrade Python to 3.11 on Jetson Nano
 
