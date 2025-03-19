@@ -18,6 +18,9 @@ sudo tar xzf Python-3.11.2.tgz
 cd Python-3.11.2
 sudo ./configure --enable-optimizations
 sudo make -j$(nproc)
+
+
+
 sudo make altinstall
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.11 1
 sudo update-alternatives --config python3
