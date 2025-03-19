@@ -8,12 +8,8 @@ boarding_pass = {
     "from": "BOS",
     "to": "LAX",
     "dep_time": "8:30PM",
-    "seat": "12A",
-    "zone": 3,
-    "ticket_id": "XYZ123",
     "terminal": "B",
     "gate": "12",
-    "TSA_pre": True
 }
 
 # Convert to JSON string

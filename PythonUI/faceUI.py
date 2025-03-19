@@ -25,6 +25,7 @@ from kivy.graphics.context_instructions import Rotate, PushMatrix, PopMatrix
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.utils import get_color_from_hex
 from kivy.animation import Animation
+from websocket import create_connection
 
 # Set app theme colors
 THEME_COLORS = {
@@ -292,19 +293,33 @@ class FaceScreen(Widget):
 class MenuScreen(FloatLayout):
     def __init__(self, switch_to_manual, switch_to_qr, **kwargs):
         super().__init__(**kwargs)
-        
+
+        self.switch_to_manual = switch_to_manual
+        self.switch_to_qr = switch_to_qr
+
         # Set background with airport theme
         with self.canvas.before:
             Color(*THEME_COLORS['background'])
             self.bg = Rectangle(pos=self.pos, size=self.size)
-        
+
         self.bind(pos=self.update_bg, size=self.update_bg)
-        
+
+        # Build UI
+        self.build_ui()
+
+        # Schedule periodic screen refresh every 3 seconds
+        Clock.schedule_interval(self.refresh_screen, 3)
+
+    def build_ui(self):
+        """Builds the UI elements for the menu screen."""
+        # Clear any existing widgets before rebuilding
+        self.clear_widgets()
+
         # Add header
         header = HeaderBar(title="Menu")
         header.pos_hint = {'top': 1}
         self.add_widget(header)
-        
+
         # Create menu buttons container
         button_layout = BoxLayout(
             orientation='vertical',
@@ -313,7 +328,7 @@ class MenuScreen(FloatLayout):
             size_hint=(0.8, 0.5),
             pos_hint={'center_x': 0.5, 'center_y': 0.45}
         )
-        
+
         # Manual Control Button
         manual_btn = RoundedButton(
             text="Manual Robot Control",
@@ -321,9 +336,9 @@ class MenuScreen(FloatLayout):
             font_size=50,
             height=80
         )
-        manual_btn.bind(on_press=lambda x: switch_to_manual())
+        manual_btn.bind(on_press=lambda x: self.switch_to_manual())
         button_layout.add_widget(manual_btn)
-        
+
         # QR Code Button
         qr_btn = RoundedButton(
             text="Scan Boarding Pass",
@@ -331,65 +346,63 @@ class MenuScreen(FloatLayout):
             font_size=50,
             height=80
         )
-        qr_btn.bind(on_press=lambda x: switch_to_qr())
+        qr_btn.bind(on_press=lambda x: self.switch_to_qr())
         button_layout.add_widget(qr_btn)
-        
+
         self.add_widget(button_layout)
-    
+
     def update_bg(self, *args):
+        """Ensures the background resizes properly."""
         self.bg.pos = self.pos
         self.bg.size = self.size
 
+    def refresh_screen(self, dt):
+        """Forces the screen to refresh to avoid UI elements getting stuck."""
+        self.build_ui()
 
 # ------------------ WebSocket Client ------------------
 class WebSocketClient:
     def __init__(self, url):
         self.url = url
         self.ws = None
-        self.retry_count = 0
-        self.max_retries = 5
         self.connected = False
-        self.status_callback = None
+        self.reconnect_attempts = 0
+        self.max_reconnect_attempts = 5
+        self.status_callback = None  # This will store the callback function
         self.connect()
 
     def set_status_callback(self, callback):
+        """Sets a callback function to be called when connection status changes."""
         self.status_callback = callback
-        # Call immediately with current status
+        # Immediately call the callback with the current status
         if self.status_callback:
             self.status_callback(self.connected)
 
     def connect(self):
+        """Connect to the WebSocket server."""
         def on_open(ws):
             print("Connected to WebSocket server")
             self.connected = True
-            self.retry_count = 0
+            self.reconnect_attempts = 0
             if self.status_callback:
-                self.status_callback(True)
+                self.status_callback(True)  # Notify connection status
 
         def on_message(ws, message):
-            print("Message from server:", message)
+            print(f"Message from server: {message}")
 
         def on_error(ws, error):
-            print("WebSocket error:", error)
+            print(f"WebSocket error: {error}")
             self.connected = False
             if self.status_callback:
-                self.status_callback(False)
+                self.status_callback(False)  # Notify connection status
+            self.reconnect()
 
         def on_close(ws, close_status_code, close_msg):
             print("Disconnected from WebSocket server")
             self.connected = False
             if self.status_callback:
-                self.status_callback(False)
-                
-            if self.retry_count < self.max_retries:
-                self.retry_count += 1
-                print(
-                    f"Retrying connection in 3 seconds (Attempt {self.retry_count}/{self.max_retries})"
-                )
-                time.sleep(3)
-                self.connect()
-            else:
-                print("WebSocket connection failed after multiple attempts.")
+                self.status_callback(False)  # Notify connection status
+            self.reconnect()
 
         self.ws = websocket.WebSocketApp(
             self.url,
@@ -398,25 +411,37 @@ class WebSocketClient:
             on_error=on_error,
             on_close=on_close
         )
-        # Run the WebSocket in a separate thread so it doesn't block the Kivy UI
+
+        # Run WebSocket in a separate thread
         wst = threading.Thread(target=self.ws.run_forever, daemon=True)
         wst.start()
 
+    def reconnect(self):
+        """Attempt to reconnect after disconnection."""
+        if self.reconnect_attempts < self.max_reconnect_attempts:
+            self.reconnect_attempts += 1
+            print(f"Reconnecting in 3 seconds (Attempt {self.reconnect_attempts}/{self.max_reconnect_attempts})...")
+            time.sleep(3)
+            self.connect()
+        else:
+            print("Max reconnect attempts reached. Could not reconnect.")
+
     def send(self, command):
-        try:
-            if self.ws and self.ws.sock and self.ws.sock.connected:
+        """Send a command via WebSocket."""
+        if self.ws and self.ws.sock and self.ws.sock.connected:
+            try:
                 self.ws.send(command)
                 print(f"Sent command: {command}")
                 return True
-            else:
-                print("WebSocket is not connected.")
+            except Exception as e:
+                print(f"Error sending command: {e}")
                 return False
-        except Exception as e:
-            print("Error sending command:", e)
+        else:
+            print("WebSocket is not connected.")
             return False
 
+# ------------------ ManualControlScreen ------------------
 
-# ------------------ Manual Control Screen ------------------
 class ManualControlScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -433,17 +458,12 @@ class ManualControlScreen(Screen):
 
         # Add header
         header = HeaderBar(title="Manual Robot Control")
-        header.pos_hint = {'top': 1}  # ✅ Ensure it is positioned at the top
+        header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
 
-        # Create the status indicator
-        self.status_icon, self.status_circle = self.create_status_indicator()
-        self.main_layout.add_widget(self.status_icon)
-
-        # WebSocket setup AFTER status_icon is created
+        # WebSocket setup
         self.server_ip = "ws://10.192.31.229:3000"
         self.ws_client = WebSocketClient(self.server_ip)
-        self.ws_client.set_status_callback(self.update_connection_status)  
 
         # Control grid
         self.control_grid = self.create_control_grid()
@@ -451,37 +471,17 @@ class ManualControlScreen(Screen):
 
         self.add_widget(self.main_layout)
 
-        # Schedule connection status updates
-        Clock.schedule_interval(self.check_connection, 5)
+        # Schedule periodic screen refresh every 3 seconds
+        Clock.schedule_interval(self.refresh_screen, 3)
 
     def update_layout(self, *args):
         """Force updates to the layout when the window resizes."""
         self.bg.pos = self.main_layout.pos
         self.bg.size = self.main_layout.size
-        self.control_grid.size_hint = (0.9, 0.6)  # Re-apply layout constraints
-
-
-    def create_status_indicator(self):
-        """Creates and returns the status indicator widget with dynamic updates."""
-        status_icon = Widget(size_hint=(None, None), size=(20, 20), pos_hint={'center_x': 0.5, 'top': 0.93})
-        
-        with status_icon.canvas:
-            Color(0.8, 0.2, 0.2, 1)  # Default Red (Disconnected)
-            status_circle = Ellipse(pos=status_icon.pos, size=status_icon.size)
-
-        # Bind position and size updates so the ellipse follows the widget
-        def update_status_circle(instance, value):
-            status_circle.pos = status_icon.pos
-            status_circle.size = status_icon.size
-
-        status_icon.bind(pos=update_status_circle, size=update_status_circle)
-
-        return status_icon, status_circle
-
-
+        self.control_grid.size_hint = (0.9, 0.6)
 
     def create_control_grid(self):
-        """ Creates and returns the control button grid. """
+        """Creates and returns the control button grid."""
         grid = GridLayout(rows=3, cols=3, spacing=15, padding=20, size_hint=(0.9, 0.6), pos_hint={'center_x': 0.5, 'center_y': 0.45})
 
         button_map = {
@@ -503,40 +503,30 @@ class ManualControlScreen(Screen):
                 if label:
                     command, color = button_map[label]
                     btn = RoundedButton(text=label, bg_color=color, font_size=50, height=80)
-                    if label == "STOP":
-                        btn.bind(on_press=lambda x: self.send_command(command))
-                    else:
-                        btn.bind(on_press=lambda x, cmd=command: self.handle_press_in(cmd))
-                        btn.bind(on_release=lambda x: self.handle_press_out())
+                    btn.bind(on_press=self.create_press_handler(command))
+                    btn.bind(on_release=self.create_release_handler())  
                     grid.add_widget(btn)
                 else:
                     grid.add_widget(Widget(size_hint=(1, 1)))  # Empty placeholder
         return grid
 
-    def update_connection_status(self, connected):
-        """ Updates the status dot color based on connection status. """
-        color = THEME_COLORS['success'] if connected else THEME_COLORS['error']
-        with self.status_icon.canvas:
-            Color(*color)
-            self.status_circle.pos = self.status_icon.pos
-            self.status_circle.size = self.status_icon.size
+    def create_press_handler(self, command):
+        """Returns a lambda function that sends a movement command when button is pressed."""
+        return lambda x: self.send_command(command)
 
-    def check_connection(self, dt):
-        """ Checks the WebSocket connection status periodically. """
-        self.update_connection_status(self.ws_client.connected)
+    def create_release_handler(self):
+        """Returns a lambda function that stops the robot when button is released."""
+        return lambda x: self.send_command('x')
 
     def send_command(self, command):
-        """ Sends a command via WebSocket. """
+        """Sends a command via WebSocket."""
         return self.ws_client.send(command) if self.ws_client else False
 
-    def handle_press_in(self, command):
-        """ Sends a movement command when a button is pressed. """
-        self.send_command(command)
-
-    def handle_press_out(self):
-        """ Stops the movement when a button is released. """
-        self.send_command('x')
-
+    def refresh_screen(self, dt):
+        """Forces the screen to refresh to avoid UI elements getting stuck."""
+        self.clear_widgets()
+        self.__init__()  # Reinitialize the screen
+        print("ManualControlScreen refreshed.")
 
 # ------------------ QR Code Reader Screen ------------------
 class QRScreen(Screen):
@@ -544,12 +534,23 @@ class QRScreen(Screen):
         super().__init__(**kwargs)
         self.switch_to_postscan = switch_to_postscan
         self.qr_scanned = False
+
+        # Build the UI elements
+        self.build_ui()
+
+        # Schedule periodic refresh every 3 seconds
+        Clock.schedule_interval(self.refresh_screen, 3)
+        Clock.schedule_interval(self.update_texture, 1/30)
+
+    def build_ui(self):
+        """Builds the UI elements for the QR scanner screen."""
+        self.clear_widgets()
         main_layout = FloatLayout()
-        
+
         header = HeaderBar(title="Boarding Pass Scanner")
         header.pos_hint = {'top': 1}
         main_layout.add_widget(header)
-        
+
         instructions = Label(
             text="Scan your boarding pass QR code",
             font_size=50,
@@ -564,22 +565,22 @@ class QRScreen(Screen):
             pos_hint={'center_x': 0.5, 'center_y': 0.5},
             padding=10
         )
-        
+
         camera_border = BoxLayout(padding=2)
         with camera_border.canvas.before:
             Color(*THEME_COLORS['primary'])
             self.camera_border_rect = Rectangle(pos=camera_border.pos, size=camera_border.size)
         camera_border.bind(pos=self.update_camera_border, size=self.update_camera_border)
-        
+
         self.camera = Camera(play=True, resolution=(640, 480), index=1)
         self.camera.allow_stretch = True
-        
+
         self.image_display = Image()
         camera_border.add_widget(self.image_display)
         camera_container.add_widget(camera_border)
-        
+
         main_layout.add_widget(camera_container)
-        
+
         result_card = BoxLayout(
             orientation='vertical',
             size_hint=(0.8, 0.15),
@@ -593,7 +594,7 @@ class QRScreen(Screen):
             Color(*THEME_COLORS['primary'])
             self.result_card_border = Line(rectangle=(result_card.x, result_card.y, result_card.width, result_card.height), width=2)
         result_card.bind(pos=self.update_result_card, size=self.update_result_card)
-        
+
         self.result_label = Label(
             text="Please Scan Your Boarding Pass",
             color=THEME_COLORS['text'],
@@ -602,23 +603,9 @@ class QRScreen(Screen):
             valign='middle'
         )
         result_card.add_widget(self.result_label)
-        
+
         main_layout.add_widget(result_card)
         self.add_widget(main_layout)
-        
-        Clock.schedule_interval(self.update_texture, 1/30)
-    def on_pre_enter(self):
-        # Reset the scanning flag when the screen is shown again.
-        self.qr_scanned = False
-    def update_camera_border(self, instance, value):
-        self.camera_border_rect.pos = instance.pos
-        self.camera_border_rect.size = instance.size
-        
-    def update_result_card(self, instance, value):
-        self.result_card_rect.pos = instance.pos
-        self.result_card_rect.size = instance.size
-        self.result_card_border.rectangle = (instance.x, instance.y, instance.width, instance.height)
-
     def update_texture(self, dt):
         if not self.camera.texture or self.qr_scanned:
             return
@@ -686,39 +673,22 @@ class QRScreen(Screen):
         new_texture.blit_buffer(rotated_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
         self.image_display.texture = new_texture
 
-    def flash_green_and_transition(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate):
-        self.qr_scanned = True
+    def refresh_screen(self, dt):
+        """Forces the screen to refresh to avoid UI elements getting stuck."""
+        print("QRScreen refreshed.")
+        self.build_ui()  # Rebuilds the screen UI
 
-        flash = Widget(size_hint=(1, 1))
-        flash.opacity = 1
-        with flash.canvas:
-            Color(0, 1, 0, 1)
-            flash_rect = Rectangle(pos=self.pos, size=self.size)
-        flash.bind(pos=lambda inst, val: setattr(flash_rect, 'pos', val),
-                   size=lambda inst, val: setattr(flash_rect, 'size', val))
-        self.add_widget(flash)
+    def update_camera_border(self, instance, value):
+        """Updates the camera border position and size dynamically."""
+        self.camera_border_rect.pos = instance.pos
+        self.camera_border_rect.size = instance.size
 
-        anim = Animation(opacity=0, duration=0.5)
-        anim.start(flash)
-        Clock.schedule_once(lambda dt: self.go_to_postscan(passenger_name, flight_number, home, destination, dep_time, terminal, gate, flash), 0.5)
+    def update_result_card(self, instance, value):
+        """Updates the result card's position and size dynamically."""
+        self.result_card_rect.pos = instance.pos
+        self.result_card_rect.size = instance.size
+        self.result_card_border.rectangle = (instance.x, instance.y, instance.width, instance.height)
 
-    def go_to_postscan(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate, flash):
-        self.remove_widget(flash)
-        postscan_message = (
-            f"Welcome, [b]{passenger_name}[/b]!\n"
-            f"You're on flight [b]{flight_number}[/b] from [b]{home}[/b] to [b]{destination}[/b]\n"
-            f"Boarding at TERMINAL [b]{terminal}[/b] GATE [b]{gate}[/b] at [b]{dep_time}[/b]\n\n"
-            f"Would you like Smooth Operator to bring your items to your gate automatically?"
-        )
-        if self.switch_to_postscan:
-            self.switch_to_postscan(postscan_message)
-        elif self.manager and self.manager.has_screen("postscan"):
-            postscan_screen = self.manager.get_screen("postscan")
-            postscan_screen.update_postscan_message(postscan_message)
-            self.manager.transition = CardTransition(mode='pop')
-            self.manager.current = "postscan"
-        else:
-            print("PostScanScreen not found")
 
 
 # ------------------ PostScanScreen ------------------
