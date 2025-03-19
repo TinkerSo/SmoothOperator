@@ -534,23 +534,12 @@ class QRScreen(Screen):
         super().__init__(**kwargs)
         self.switch_to_postscan = switch_to_postscan
         self.qr_scanned = False
-
-        # Build the UI elements
-        self.build_ui()
-
-        # Schedule periodic refresh every 3 seconds
-        Clock.schedule_interval(self.refresh_screen, 3)
-        Clock.schedule_interval(self.update_texture, 1/30)
-
-    def build_ui(self):
-        """Builds the UI elements for the QR scanner screen."""
-        self.clear_widgets()
         main_layout = FloatLayout()
-
+        
         header = HeaderBar(title="Boarding Pass Scanner")
         header.pos_hint = {'top': 1}
         main_layout.add_widget(header)
-
+        
         instructions = Label(
             text="Scan your boarding pass QR code",
             font_size=50,
@@ -565,22 +554,22 @@ class QRScreen(Screen):
             pos_hint={'center_x': 0.5, 'center_y': 0.5},
             padding=10
         )
-
+        
         camera_border = BoxLayout(padding=2)
         with camera_border.canvas.before:
             Color(*THEME_COLORS['primary'])
             self.camera_border_rect = Rectangle(pos=camera_border.pos, size=camera_border.size)
         camera_border.bind(pos=self.update_camera_border, size=self.update_camera_border)
-
+        
         self.camera = Camera(play=True, resolution=(640, 480), index=1)
         self.camera.allow_stretch = True
-
+        
         self.image_display = Image()
         camera_border.add_widget(self.image_display)
         camera_container.add_widget(camera_border)
-
+        
         main_layout.add_widget(camera_container)
-
+        
         result_card = BoxLayout(
             orientation='vertical',
             size_hint=(0.8, 0.15),
@@ -594,7 +583,7 @@ class QRScreen(Screen):
             Color(*THEME_COLORS['primary'])
             self.result_card_border = Line(rectangle=(result_card.x, result_card.y, result_card.width, result_card.height), width=2)
         result_card.bind(pos=self.update_result_card, size=self.update_result_card)
-
+        
         self.result_label = Label(
             text="Please Scan Your Boarding Pass",
             color=THEME_COLORS['text'],
@@ -603,9 +592,23 @@ class QRScreen(Screen):
             valign='middle'
         )
         result_card.add_widget(self.result_label)
-
+        
         main_layout.add_widget(result_card)
         self.add_widget(main_layout)
+        
+        Clock.schedule_interval(self.update_texture, 1/30)
+    def on_pre_enter(self):
+        # Reset the scanning flag when the screen is shown again.
+        self.qr_scanned = False
+    def update_camera_border(self, instance, value):
+        self.camera_border_rect.pos = instance.pos
+        self.camera_border_rect.size = instance.size
+        
+    def update_result_card(self, instance, value):
+        self.result_card_rect.pos = instance.pos
+        self.result_card_rect.size = instance.size
+        self.result_card_border.rectangle = (instance.x, instance.y, instance.width, instance.height)
+
     def update_texture(self, dt):
         if not self.camera.texture or self.qr_scanned:
             return
@@ -673,22 +676,39 @@ class QRScreen(Screen):
         new_texture.blit_buffer(rotated_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
         self.image_display.texture = new_texture
 
-    def refresh_screen(self, dt):
-        """Forces the screen to refresh to avoid UI elements getting stuck."""
-        print("QRScreen refreshed.")
-        self.build_ui()  # Rebuilds the screen UI
+    def flash_green_and_transition(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate):
+        self.qr_scanned = True
 
-    def update_camera_border(self, instance, value):
-        """Updates the camera border position and size dynamically."""
-        self.camera_border_rect.pos = instance.pos
-        self.camera_border_rect.size = instance.size
+        flash = Widget(size_hint=(1, 1))
+        flash.opacity = 1
+        with flash.canvas:
+            Color(0, 1, 0, 1)
+            flash_rect = Rectangle(pos=self.pos, size=self.size)
+        flash.bind(pos=lambda inst, val: setattr(flash_rect, 'pos', val),
+                   size=lambda inst, val: setattr(flash_rect, 'size', val))
+        self.add_widget(flash)
 
-    def update_result_card(self, instance, value):
-        """Updates the result card's position and size dynamically."""
-        self.result_card_rect.pos = instance.pos
-        self.result_card_rect.size = instance.size
-        self.result_card_border.rectangle = (instance.x, instance.y, instance.width, instance.height)
+        anim = Animation(opacity=0, duration=0.5)
+        anim.start(flash)
+        Clock.schedule_once(lambda dt: self.go_to_postscan(passenger_name, flight_number, home, destination, dep_time, terminal, gate, flash), 0.5)
 
+    def go_to_postscan(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate, flash):
+        self.remove_widget(flash)
+        postscan_message = (
+            f"Welcome, [b]{passenger_name}[/b]!\n"
+            f"You're on flight [b]{flight_number}[/b] from [b]{home}[/b] to [b]{destination}[/b]\n"
+            f"Boarding at TERMINAL [b]{terminal}[/b] GATE [b]{gate}[/b] at [b]{dep_time}[/b]\n\n"
+            f"Would you like Smooth Operator to bring your items to your gate automatically?"
+        )
+        if self.switch_to_postscan:
+            self.switch_to_postscan(postscan_message)
+        elif self.manager and self.manager.has_screen("postscan"):
+            postscan_screen = self.manager.get_screen("postscan")
+            postscan_screen.update_postscan_message(postscan_message)
+            self.manager.transition = CardTransition(mode='pop')
+            self.manager.current = "postscan"
+        else:
+            print("PostScanScreen not found")
 
 
 # ------------------ PostScanScreen ------------------
