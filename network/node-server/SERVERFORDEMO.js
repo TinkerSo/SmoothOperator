@@ -66,8 +66,20 @@ app.post('/api/arduino', (req, res) => {
     }
     
     command = command.trim();  // Remove any extra whitespace
+    let vCommand = "";
+    if (command == 'w') {
+        vCommand = "1 0 0";
+    } else if (command == "a") {
+        vCommand = "0 0 -0.5";
+    } else if (command == "d") {
+        vCommand = "0 0 0.5"
+    } else if (command == "s") {
+        vCommand = "-1 0 0"
+    } else if (command == "x") {
+        vCommand = "0 0 0";
+    }
 
-    console.log(`Sending command to Arduino: ${command}`);
+    console.log(`Sending command to Arduino: ${vCommand}`);
 
     arduinoPort.write(`${command}\n`, 'utf8', (err) => {
         if (err) {
