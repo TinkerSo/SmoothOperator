@@ -190,7 +190,7 @@ class FaceScreen(Widget):
 
         self.update_positions()
         self.bind(pos=self.update_positions, size=self.on_resize)
-        Clock.schedule_interval(self.blink, 3)
+        # Clock.schedule_interval(self.blink, 3)
 
     def speak_phrase(self):
         """Speak the phrase 'Excuse me, coming through' with a cute voice."""
@@ -308,7 +308,7 @@ class MenuScreen(FloatLayout):
         self.build_ui()
 
         # Schedule periodic screen refresh every 3 seconds
-        Clock.schedule_interval(self.refresh_screen, 3)
+        # Clock.schedule_interval(self.refresh_screen, 3)
 
     def build_ui(self):
         """Builds the UI elements for the menu screen."""
@@ -420,11 +420,11 @@ class WebSocketClient:
         """Attempt to reconnect after disconnection."""
         if self.reconnect_attempts < self.max_reconnect_attempts:
             self.reconnect_attempts += 1
-            print(f"Reconnecting in 3 seconds (Attempt {self.reconnect_attempts}/{self.max_reconnect_attempts})...")
+            # print(f"Reconnecting in 3 seconds (Attempt {self.reconnect_attempts}/{self.max_reconnect_attempts})...")
             time.sleep(3)
             self.connect()
-        else:
-            print("Max reconnect attempts reached. Could not reconnect.")
+        # else:
+            # print("Max reconnect attempts reached. Could not reconnect.")
 
     def send(self, command):
         """Send a command via WebSocket."""
@@ -472,7 +472,7 @@ class ManualControlScreen(Screen):
         self.add_widget(self.main_layout)
 
         # Schedule periodic screen refresh every 3 seconds
-        Clock.schedule_interval(self.refresh_screen, 3)
+        # Clock.schedule_interval(self.refresh_screen, 3)
 
     def update_layout(self, *args):
         """Force updates to the layout when the window resizes."""
@@ -526,7 +526,7 @@ class ManualControlScreen(Screen):
         """Forces the screen to refresh to avoid UI elements getting stuck."""
         self.clear_widgets()
         self.__init__()  # Reinitialize the screen
-        print("ManualControlScreen refreshed.")
+        # print("ManualControlScreen refreshed.")
 
 # ------------------ QR Code Reader Screen ------------------
 class QRScreen(Screen):
@@ -561,7 +561,7 @@ class QRScreen(Screen):
             self.camera_border_rect = Rectangle(pos=camera_border.pos, size=camera_border.size)
         camera_border.bind(pos=self.update_camera_border, size=self.update_camera_border)
         
-        self.camera = Camera(play=True, resolution=(640, 480), index=1)
+        self.camera = Camera(play=True, resolution=(640, 480))
         self.camera.allow_stretch = True
         
         self.image_display = Image()
@@ -596,7 +596,7 @@ class QRScreen(Screen):
         main_layout.add_widget(result_card)
         self.add_widget(main_layout)
         
-        Clock.schedule_interval(self.update_texture, 1/30)
+        # Clock.schedule_interval(self.update_texture, 1/30)
     def on_pre_enter(self):
         # Reset the scanning flag when the screen is shown again.
         self.qr_scanned = False
@@ -707,8 +707,8 @@ class QRScreen(Screen):
             postscan_screen.update_postscan_message(postscan_message)
             self.manager.transition = CardTransition(mode='pop')
             self.manager.current = "postscan"
-        else:
-            print("PostScanScreen not found")
+        # else:
+            # print("PostScanScreen not found")
 
 
 # ------------------ PostScanScreen ------------------

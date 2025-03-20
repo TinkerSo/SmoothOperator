@@ -8,7 +8,7 @@ const app = express();
 const PORT = 3000;
 
 // UART Configuration
-const ARDUINO_UART_PORT = '/dev/ttyTHS1';
+const ARDUINO_UART_PORT = '/dev/ttyACM0';
 const BAUD_RATE = 115200;
 
 const arduinoPort = new SerialPort({
