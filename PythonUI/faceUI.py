@@ -190,7 +190,7 @@ class FaceScreen(Widget):
 
         self.update_positions()
         self.bind(pos=self.update_positions, size=self.on_resize)
-        # Clock.schedule_interval(self.blink, 3)
+        Clock.schedule_interval(self.blink, 3)
 
     def speak_phrase(self):
         """Speak the phrase 'Excuse me, coming through' with a cute voice."""
