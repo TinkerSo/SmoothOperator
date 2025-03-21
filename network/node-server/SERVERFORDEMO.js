@@ -58,6 +58,7 @@ function isValidCommand(command) {
 }
 
 // API to Send Commands to Arduino with UTF-8 Encoding
+// Haha funny joke, this actually isn't being used -> will fix later.
 app.post('/api/arduino', (req, res) => {
     let { command } = req.body;
     
@@ -118,13 +119,25 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message) => {
         console.log(`Received WebSocket command: ${message}`);
+        let vCommand = "";
+        if (message == 'w') {
+            vCommand = "1 0 0";
+        } else if (message == "a") {
+            vCommand = "0 0 -0.5";
+        } else if (message == "d") {
+            vCommand = "0 0 0.5"
+        } else if (message == "s") {
+            vCommand = "-1 0 0"
+        } else if (message == "x") {
+            vCommand = "0 0 0";
+        }
 
         // Directly write UTF-8 encoded data
         arduinoPort.write(`${message}\n`, 'utf8', (err) => {
             if (err) {
                 console.error(`Error sending to Arduino: ${err}`);
             } else {
-                console.log(`Forwarded WebSocket command to Arduino: ${message}`);
+                console.log(`Forwarded WebSocket command to Arduino: ${vCommand}`);
             }
         });
     });
