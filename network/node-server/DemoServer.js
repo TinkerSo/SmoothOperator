@@ -56,10 +56,10 @@ app.get('/', (req, res) => {
 // Flipped the values to match the physical robot.
 function getVCommand(command) {
     switch (command) {
-        case 'w': return "-0.015 0.000 0.000";
-        case 'a': return "0.000 0.000 0.015";
-        case 'd': return "0.000 0.000 -0.015";
-        case 's': return "0.015 0.000 0.000";
+        case 'w': return "-0.100 0.000 0.000";
+        case 'a': return "0.000 0.000 0.100";
+        case 'd': return "0.000 0.000 -0.100";
+        case 's': return "0.100 0.000 0.000";
         case 'x': return "0.000 0.000 0.000";
         default: return null;
     }
