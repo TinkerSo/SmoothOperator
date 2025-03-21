@@ -69,13 +69,13 @@ app.post('/api/arduino', (req, res) => {
     command = command.trim();  // Remove any extra whitespace
     let vCommand = "";
     if (command == 'w') {
-        vCommand = "1.000 0.000 0.000";
+        vCommand = "0.150 0.000 0.000";
     } else if (command == "a") {
-        vCommand = "0.000 0.000 -0.500";
+        vCommand = "0.000 0.000 -0.150";
     } else if (command == "d") {
-        vCommand = "0.000 0.000 0.500"
+        vCommand = "0.000 0.000 0.150"
     } else if (command == "s") {
-        vCommand = "-1.000 0.000 0.000"
+        vCommand = "-0.150 0.000 0.000"
     } else if (command == "x") {
         vCommand = "0.000 0.000 0.000";
     }
@@ -121,13 +121,13 @@ wss.on('connection', (ws, req) => {
         console.log(`Received WebSocket command: ${message}`);
         let vCommand = "";
         if (message == 'w') {
-            vCommand = "1.000 0.000 0.000";
+            vCommand = "0.150 0.000 0.000";
         } else if (message == "a") {
-            vCommand = "0.000 0.000 -0.500";
+            vCommand = "0.000 0.000 -0.150";
         } else if (message == "d") {
-            vCommand = "0.000 0.000 0.500"
+            vCommand = "0.000 0.000 0.150"
         } else if (message == "s") {
-            vCommand = "-1.000 0.000 0.000"
+            vCommand = "-0.150 0.000 0.000"
         } else if (message == "x") {
             vCommand = "0.000 0.000 0.000";
 	}
