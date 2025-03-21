@@ -55,7 +55,7 @@ app.get('/', (req, res) => {
 // Function to map commands to vCommand strings
 function getVCommand(command) {
     switch (command) {
-        case 'w': return "0.150 0.000 0.000";
+        case 'w': return "0.250 0.000 0.000";
         case 'a': return "0.000 0.000 -0.150";
         case 'd': return "0.000 0.000 0.150";
         case 's': return "-0.150 0.000 0.000";
