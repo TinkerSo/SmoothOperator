@@ -58,6 +58,7 @@ function isValidCommand(command) {
 }
 
 // API to Send Commands to Arduino with UTF-8 Encoding
+// Haha funny joke, this actually isn't being used -> will fix later.
 app.post('/api/arduino', (req, res) => {
     let { command } = req.body;
     
@@ -68,15 +69,15 @@ app.post('/api/arduino', (req, res) => {
     command = command.trim();  // Remove any extra whitespace
     let vCommand = "";
     if (command == 'w') {
-        vCommand = "1 0 0";
+        vCommand = "1.000 0.000 0.000";
     } else if (command == "a") {
-        vCommand = "0 0 -0.5";
+        vCommand = "0.000 0.000 -0.500";
     } else if (command == "d") {
-        vCommand = "0 0 0.5"
+        vCommand = "0.000 0.000 0.500"
     } else if (command == "s") {
-        vCommand = "-1 0 0"
+        vCommand = "-1.000 0.000 0.000"
     } else if (command == "x") {
-        vCommand = "0 0 0";
+        vCommand = "0.000 0.000 0.000";
     }
 
     console.log(`Sending command to Arduino: ${vCommand}`);
@@ -118,13 +119,24 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message) => {
         console.log(`Received WebSocket command: ${message}`);
-
+        let vCommand = "";
+        if (message == 'w') {
+            vCommand = "1.000 0.000 0.000";
+        } else if (message == "a") {
+            vCommand = "0.000 0.000 -0.500";
+        } else if (message == "d") {
+            vCommand = "0.000 0.000 0.500"
+        } else if (message == "s") {
+            vCommand = "-1.000 0.000 0.000"
+        } else if (message == "x") {
+            vCommand = "0.000 0.000 0.000";
+	}
         // Directly write UTF-8 encoded data
-        arduinoPort.write(`${message}\n`, 'utf8', (err) => {
+        arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
             if (err) {
                 console.error(`Error sending to Arduino: ${err}`);
             } else {
-                console.log(`Forwarded WebSocket command to Arduino: ${message}`);
+                console.log(`Forwarded WebSocket command to Arduino: ${vCommand}`);
             }
         });
     });
