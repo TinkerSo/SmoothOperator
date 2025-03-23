@@ -107,6 +107,39 @@ app.post('/api/ros', (req, res) => {
     });
 });
 
+// Global variable to store the current passcode
+let currentPasscode = null;
+
+// Endpoint to receive the passcode from the robot (from your Kivy ConnectScreen)
+app.post('/api/connect', (req, res) => {
+    const { passcode } = req.body;
+    if (!passcode) {
+        return res.status(400).send({ error: 'Passcode is required.' });
+    }
+    currentPasscode = passcode.trim();
+    console.log(`Robot set passcode: ${currentPasscode}`);
+    return res.status(200).send({ message: 'Passcode received.', passcode: currentPasscode });
+});
+
+// Endpoint to authenticate the React Native app's connection attempt
+app.post('/api/authenticate', (req, res) => {
+    const { passcode } = req.body;
+    if (!currentPasscode) {
+        return res.status(400).send({ error: 'Robot has not set a passcode yet.' });
+    }
+    if (!passcode) {
+        return res.status(400).send({ error: 'Passcode is required.' });
+    }
+    if (passcode.trim() === currentPasscode) {
+        console.log(`React Native authenticated successfully with passcode: ${passcode}`);
+        return res.status(200).send({ message: 'Authenticated' });
+    } else {
+        console.log(`React Native failed authentication: ${passcode} does not match ${currentPasscode}`);
+        return res.status(401).send({ error: 'Incorrect passcode' });
+    }
+});
+
+
 // Start HTTP Server
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`HTTP Server running on http://0.0.0.0:${PORT}`);

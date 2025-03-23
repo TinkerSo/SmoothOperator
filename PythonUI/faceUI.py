@@ -6,6 +6,7 @@ import numpy as np
 from pyzbar.pyzbar import decode
 import json
 import random
+import requests
 
 from kivy.app import App
 from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition, SlideTransition, CardTransition
@@ -98,24 +99,22 @@ class RoundedButton(ButtonBehavior, BoxLayout):
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
 
 class HeaderBar(BoxLayout):
-    def __init__(self, title="SmoothOperatort", icon=None, **kwargs):
+    def __init__(self, title="SmoothOperatort", icon=None, switch_screen_callback=lambda: None, **kwargs):
+        # Remove the custom property so it isn't passed to the base widget's __init__
+        kwargs.pop('switch_screen_callback', None)
         super().__init__(orientation='horizontal', size_hint=(1, None), height=60, **kwargs)
-        
+        self.switch_screen_callback = switch_screen_callback
+
         with self.canvas.before:
             Color(*THEME_COLORS['primary'])
             self.rect = Rectangle(pos=self.pos, size=self.size)
-        
         self.bind(pos=self.update_rect, size=self.update_rect)
-        
+
         # Create header content
         content = BoxLayout(orientation='horizontal', padding=10, spacing=10)
-        
-        # Add icon if provided
         if icon:
             icon_img = Image(source=icon, size_hint=(None, None), size=(40, 40))
             content.add_widget(icon_img)
-        
-        # Add title label
         title_label = Label(
             text=title,
             font_size=50,
@@ -126,8 +125,6 @@ class HeaderBar(BoxLayout):
             text_size=(None, None)
         )
         content.add_widget(title_label)
-        
-        # Add back button
         back_button = Button(
             text="Back",
             size_hint=(None, None),
@@ -137,20 +134,17 @@ class HeaderBar(BoxLayout):
         )
         back_button.bind(on_press=self.go_back)
         content.add_widget(back_button)
-        
         self.add_widget(content)
-    
+
     def update_rect(self, *args):
         self.rect.pos = self.pos
         self.rect.size = self.size
-        
+
     def go_back(self, instance):
         app = App.get_running_app()
-        # If we're on the menu screen, go back to face screen
         if app.sm.current == "menu":
             app.sm.transition = CardTransition(mode='pop')
             app.sm.current = "face"
-        # For any other screen, go back to menu
         elif app.sm.current != "face":
             app.sm.transition = CardTransition(mode='pop')
             app.sm.current = "menu"
@@ -353,13 +347,69 @@ class FaceScreen(Widget):
         self.right_eye.size = self.eye_size
         self.blinking = False
 
+# ------------------ ConnectScreen ------------------
+
+class ConnectScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.main_layout = FloatLayout()
+        
+        # Add a header (using a dummy callback)
+        header = HeaderBar(switch_screen_callback=lambda: None, title="Connect to App")
+        header.pos_hint = {'top': 1}
+        self.main_layout.add_widget(header)
+        
+        # Generate a random 4-digit passcode
+        self.passcode = "{:04d}".format(random.randint(0, 9999))
+        
+        instructions = (
+            "[b]Connect to App[/b]\n\n"
+            "Type the following 4-digit passcode in the app to connect to your Smooth Operator machine:\n\n"
+            f"[b]{self.passcode}[/b]\n\n"
+            "If you need assistance, please contact support."
+        )
+        
+        instructions_label = Label(
+            text=instructions,
+            markup=True,
+            font_size=40,
+            color=THEME_COLORS['text'],
+            halign='center',
+            valign='middle',
+            pos_hint={'center_x': 0.5, 'center_y': 0.5},
+            size_hint=(0.8, 0.6)
+        )
+        instructions_label.bind(size=instructions_label.setter('text_size'))
+        self.main_layout.add_widget(instructions_label)
+        
+        self.add_widget(self.main_layout)
+        
+        # Send the passcode to the Node.js server
+        self.send_passcode_to_server()
+    
+    def send_passcode_to_server(self):
+        def post_passcode():
+            try:
+                # Update the URL to match your Node.js server endpoint
+                url = "http://<server-ip>:3000/api/connect"
+                payload = {"passcode": self.passcode}
+                headers = {"Content-Type": "application/json"}
+                response = requests.post(url, json=payload, headers=headers, timeout=5)
+                print("Sent passcode to server:", response.text)
+            except Exception as e:
+                print("Error sending passcode:", e)
+        threading.Thread(target=post_passcode, daemon=True).start()
+
+
 # ------------------ MenuScreen ------------------
+
 class MenuScreen(FloatLayout):
-    def __init__(self, switch_to_manual, switch_to_qr, switch_to_help, **kwargs):
+    def __init__(self, switch_to_manual, switch_to_qr, switch_to_help, switch_to_connect, **kwargs):
         super().__init__(**kwargs)
         self.switch_to_manual = switch_to_manual
         self.switch_to_qr = switch_to_qr
         self.switch_to_help = switch_to_help
+        self.switch_to_connect = switch_to_connect
 
         with self.canvas.before:
             Color(*THEME_COLORS['background'])
@@ -370,7 +420,7 @@ class MenuScreen(FloatLayout):
     def build_ui(self):
         self.clear_widgets()
 
-        header = HeaderBar(title="Menu")
+        header = HeaderBar(switch_screen_callback=lambda: None, title="Menu")
         header.pos_hint = {'top': 1}
         self.add_widget(header)
 
@@ -400,7 +450,15 @@ class MenuScreen(FloatLayout):
         qr_btn.bind(on_press=lambda x: self.switch_to_qr())
         button_layout.add_widget(qr_btn)
         
-        # New Help Button
+        connect_btn = RoundedButton(
+            text="Connect to App",
+            bg_color=THEME_COLORS['primary'],  # You can choose a different color if desired
+            font_size=50,
+            height=80
+        )
+        connect_btn.bind(on_press=lambda x: self.switch_to_connect())
+        button_layout.add_widget(connect_btn)
+        
         help_btn = RoundedButton(
             text="Help",
             bg_color=THEME_COLORS['accent'],
@@ -415,6 +473,7 @@ class MenuScreen(FloatLayout):
     def update_bg(self, *args):
         self.bg.pos = self.pos
         self.bg.size = self.size
+
 
 # ------------------ WebSocket Client ------------------
 class WebSocketClient:
@@ -774,6 +833,7 @@ class HelpScreen(Screen):
 
 # ------------------ Main Application ------------------
 
+
 class SmoothOperatorApp(App):
     def build(self):
         self.title = "SmoothOperator"
@@ -785,11 +845,12 @@ class SmoothOperatorApp(App):
         qr_screen = QRScreen(switch_to_postscan=self.switch_to_postscan, name="qr")
         postscan_screen = PostScanScreen(name="postscan")
         help_screen = HelpScreen(name="help")
+        connect_screen = ConnectScreen(name="connect")
 
         face_widget = FaceScreen(self.switch_to_menu)
         face_screen.add_widget(face_widget)
 
-        menu_widget = MenuScreen(self.switch_to_manual, self.switch_to_qr, self.switch_to_help)
+        menu_widget = MenuScreen(self.switch_to_manual, self.switch_to_qr, self.switch_to_help, self.switch_to_connect)
         menu_screen.add_widget(menu_widget)
 
         self.sm.add_widget(face_screen)
@@ -798,6 +859,7 @@ class SmoothOperatorApp(App):
         self.sm.add_widget(qr_screen)
         self.sm.add_widget(postscan_screen)
         self.sm.add_widget(help_screen)
+        self.sm.add_widget(connect_screen)
 
         self.sm.current = "face"
         return self.sm
@@ -817,6 +879,10 @@ class SmoothOperatorApp(App):
     def switch_to_help(self):
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "help"
+        
+    def switch_to_connect(self):
+        self.sm.transition = CardTransition(mode='pop')
+        self.sm.current = "connect"
         
     def switch_to_postscan(self, message=None):
         if message:
