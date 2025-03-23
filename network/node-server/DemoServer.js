@@ -52,42 +52,38 @@ app.get('/', (req, res) => {
     res.send('Hello from the Jetson Nano Node.js Server!');
 });
 
-function isValidCommand(command) {
-    // Ensure the command is a single character and one of the allowed ones
-    return typeof command === 'string' && /^[wasd]$/.test(command);
+// Function to map commands to vCommand strings
+// Flipped the values to match the physical robot.
+function getVCommand(command) {
+    switch (command) {
+        case 'w': return "-0.100 0.000 0.000";
+        case 'a': return "0.000 0.000 0.100";
+        case 'd': return "0.000 0.000 -0.100";
+        case 's': return "0.100 0.000 0.000";
+        case 'x': return "0.000 0.000 0.000";
+        default: return null;
+    }
 }
 
 // API to Send Commands to Arduino with UTF-8 Encoding
-// Haha funny joke, this actually isn't being used -> will fix later.
 app.post('/api/arduino', (req, res) => {
     let { command } = req.body;
     
-    if (!command || !isValidCommand(command.trim())) {
-        return res.status(400).send({ error: 'Invalid command. Only "w", "a", "s", and "d" are allowed.' });
+    if (!command || !getVCommand(command.trim())) {
+        return res.status(400).send({ error: 'Invalid command. Only "w", "a", "s", "d", and "x" are allowed.' });
     }
     
     command = command.trim();  // Remove any extra whitespace
-    let vCommand = "";
-    if (command == 'w') {
-        vCommand = "0.150 0.000 0.000";
-    } else if (command == "a") {
-        vCommand = "0.000 0.000 -0.150";
-    } else if (command == "d") {
-        vCommand = "0.000 0.000 0.150"
-    } else if (command == "s") {
-        vCommand = "-0.150 0.000 0.000"
-    } else if (command == "x") {
-        vCommand = "0.000 0.000 0.000";
-    }
+    const vCommand = getVCommand(command);
 
     console.log(`Sending command to Arduino: ${vCommand}`);
 
-    arduinoPort.write(`${command}\n`, 'utf8', (err) => {
+    arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
         if (err) {
             console.error(`Error writing to Arduino: ${err}`);
             return res.status(500).send({ error: 'Failed to send command to Arduino' });
         }
-        console.log(`Command sent to Arduino: ${command}`);
+        console.log(`Command sent to Arduino: ${vCommand}`);
         res.status(200).send({ message: `Command '${command}' sent successfully` });
     });
 });
@@ -99,9 +95,17 @@ app.post('/api/ros', (req, res) => {
     if (!data) {
         return res.status(400).send({ error: 'Invalid data format' });
     }
-    console.log(`Received from ROS: ${data}`);
-});
 
+    console.log(`Received from ROS: ${data}`);
+    arduinoPort.write(`${data}\n`, 'utf8', (err) => {
+        if (err) {
+            console.error(`Error writing to Arduino: ${err}`);
+            return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
+        }
+        console.log(`ROS command sent to Arduino: ${data}`);
+        res.status(200).send({ message: `ROS command sent successfully` });
+    });
+});
 
 // Start HTTP Server
 const server = app.listen(PORT, '0.0.0.0', () => {
@@ -119,18 +123,13 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message) => {
         console.log(`Received WebSocket command: ${message}`);
-        let vCommand = "";
-        if (message == 'w') {
-            vCommand = "0.150 0.000 0.000";
-        } else if (message == "a") {
-            vCommand = "0.000 0.000 -0.150";
-        } else if (message == "d") {
-            vCommand = "0.000 0.000 0.150"
-        } else if (message == "s") {
-            vCommand = "-0.150 0.000 0.000"
-        } else if (message == "x") {
-            vCommand = "0.000 0.000 0.000";
-	}
+        const vCommand = getVCommand(message.toString().trim());
+
+        if (!vCommand) {
+            console.error(`Invalid WebSocket command: ${message}`);
+            return;
+        }
+
         // Directly write UTF-8 encoded data
         arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
             if (err) {
