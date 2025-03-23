@@ -391,7 +391,9 @@ class ConnectScreen(Screen):
         def post_passcode():
             try:
                 # Update the URL to match your Node.js server endpoint
-                url = "http://<server-ip>:3000/api/connect"
+                url = "http://128.197.53.43:3000/api/connect" # Jetson on Ethernet
+                # url = 'ws://10.192.31.229:3000'; # Jetson on BU Guest
+                # url = 'ws://192.168.1.5:3000'; # Jetson on Netgear
                 payload = {"passcode": self.passcode}
                 headers = {"Content-Type": "application/json"}
                 response = requests.post(url, json=payload, headers=headers, timeout=5)

@@ -155,7 +155,19 @@ wss.on('connection', (ws, req) => {
     console.log(`WebSocket Client Connected: ${clientIP}`);
 
     ws.on('message', (message) => {
-        console.log(`Received WebSocket command: ${message}`);
+        const trimmedMessage = message.toString().trim();
+        
+        // If the message is "AUTH_SUCCESS", broadcast it to all connected clients.
+        if (trimmedMessage === 'AUTH_SUCCESS') {
+            console.log("Received AUTH_SUCCESS. Broadcasting to all clients...");
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send('AUTH_SUCCESS');
+                }
+            });
+            return; // Do not process further.
+        }
+        console.log(`Received WebSocket command: ${trimmedMessage}`);
         const vCommand = getVCommand(message.toString().trim());
 
         if (!vCommand) {

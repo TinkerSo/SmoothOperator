@@ -1,28 +1,41 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 
-export default function GamepadControls() {
+export default function GamepadWithAuth() {
   const ws = useRef(null);
-  const intervalRef = useRef(null);
-  // Use your desired server IP address here
-  const SERVER_IP = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
-  // const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson on Netgear
+  const [authenticated, setAuthenticated] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  
+  // Update these to your server's addresses:
+  // const SERVER_IP = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
+// const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson on Netgear
+  const HTTP_SERVER = 'http://128.197.53.43:3000';
+  const WS_SERVER = 'ws://128.197.53.43:3000'; // Jetson on Netgear
+  const maxRetries = 5;
+  const retryCountRef = useRef(0);
 
+  // Establish the WebSocket connection
   useEffect(() => {
-    let retryCount = 0;
-    const maxRetries = 5;
-
     const connectWebSocket = () => {
-      console.log(`Attempting to connect to WebSocket: ${SERVER_IP}`);
-      ws.current = new WebSocket(SERVER_IP);
+      console.log(`Connecting to WebSocket at ${WS_SERVER}`);
+      ws.current = new WebSocket(WS_SERVER);
 
       ws.current.onopen = () => {
-        console.log('✅ Connected to WebSocket server');
-        retryCount = 0;
+        console.log('✅ WebSocket connection opened');
+        retryCountRef.current = 0;
       };
 
       ws.current.onmessage = (event) => {
-        console.log('📩 Message from server:', event.data);
+        console.log('📩 Received:', event.data);
+        // You can add handling of incoming messages here if needed.
       };
 
       ws.current.onerror = (error) => {
@@ -30,10 +43,12 @@ export default function GamepadControls() {
       };
 
       ws.current.onclose = () => {
-        console.log('🔴 Disconnected from WebSocket server');
-        if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`🔄 Retrying connection in 3 seconds (Attempt ${retryCount}/${maxRetries})`);
+        console.log('🔴 WebSocket connection closed');
+        if (retryCountRef.current < maxRetries) {
+          retryCountRef.current++;
+          console.log(
+            `🔄 Retrying connection in 3 seconds (Attempt ${retryCountRef.current}/${maxRetries})`
+          );
           setTimeout(connectWebSocket, 3000);
         } else {
           console.error('🚨 WebSocket connection failed after multiple attempts.');
@@ -48,6 +63,7 @@ export default function GamepadControls() {
     };
   }, []);
 
+  // Function to send gamepad commands via WebSocket
   const sendCommand = (command) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(command);
@@ -57,6 +73,78 @@ export default function GamepadControls() {
     }
   };
 
+  // --------------------- Passcode Screen ---------------------
+  // When the user types 4 digits, send them to /api/authenticate.
+  const handlePasscodeChange = (text) => {
+    const cleanedText = text.replace(/[^0-9]/g, '').slice(0, 4);
+    setPasscode(cleanedText);
+
+    if (cleanedText.length === 4) {
+      fetch(`${HTTP_SERVER}/api/authenticate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode: cleanedText }),
+      })
+        .then((response) => {
+          if (response.ok) {
+            console.log('✅ Passcode authenticated');
+            setAuthenticated(true);
+            // Send a success message over WebSocket to notify the Python app.
+            if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+              ws.current.send('AUTH_SUCCESS');
+              console.log('📤 Sent AUTH_SUCCESS via WebSocket');
+            }
+          } else {
+            return response.json().then((data) => {
+              throw new Error(data.error || 'Incorrect passcode');
+            });
+          }
+        })
+        .catch((error) => {
+          console.error(error);
+          setAttempts((prev) => prev + 1);
+          Alert.alert(
+            'Incorrect Passcode',
+            `Please try again. Attempt ${attempts + 1} of 3.`,
+            [{ text: 'OK', onPress: () => setPasscode('') }]
+          );
+          if (attempts >= 2) {
+            Alert.alert('Too Many Attempts', 'Please try again later.', [{ text: 'OK' }]);
+          }
+        });
+    }
+  };
+
+  if (!authenticated) {
+    return (
+      <View style={styles.passcodeContainer}>
+        <Text style={styles.passcodeTitle}>Enter Passcode</Text>
+        <Text style={styles.passcodeInstructions}>
+          Please enter your 4-digit connect passcode to continue.
+        </Text>
+        <TextInput
+          style={styles.passcodeInput}
+          value={passcode}
+          onChangeText={handlePasscodeChange}
+          keyboardType="number-pad"
+          secureTextEntry={true}
+          maxLength={4}
+          placeholder="****"
+          placeholderTextColor="#999"
+        />
+        <View style={styles.passcodeHints}>
+          <Text style={styles.passcodeHint}>
+            {passcode.length >= 1 ? '●' : '○'}
+            {passcode.length >= 2 ? '●' : '○'}
+            {passcode.length >= 3 ? '●' : '○'}
+            {passcode.length >= 4 ? '●' : '○'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // --------------------- Gamepad Controls ---------------------
   const handlePressIn = (command) => {
     sendCommand(command);
   };
@@ -153,5 +241,41 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: 'white',
     fontWeight: 'bold',
+  },
+  passcodeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f0f0f0',
+  },
+  passcodeTitle: {
+    marginBottom: 20,
+    textAlign: 'center',
+    fontSize: 28,
+  },
+  passcodeInstructions: {
+    marginBottom: 30,
+    textAlign: 'center',
+    fontSize: 18,
+  },
+  passcodeInput: {
+    width: '80%',
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 18,
+    marginBottom: 20,
+  },
+  passcodeHints: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  passcodeHint: {
+    fontSize: 24,
+    letterSpacing: 10,
   },
 });
