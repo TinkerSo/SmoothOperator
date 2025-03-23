@@ -47,6 +47,14 @@ THEME_COLORS = {
 Window.size = (800, 600)
 Window.clearcolor = THEME_COLORS['background']
 
+# Global Server Configuration
+SERVER_IP = "128.197.53.43" # Ethernet
+# SERVER_IP = "10.192.31.229:3000" # BU Guest
+SERVER_PORT = 3000
+WS_SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
+HTTP_SERVER_URL = f"http://{SERVER_IP}:{SERVER_PORT}"
+
+
 # ------------------ Custom Widgets ------------------
 class RoundedButton(ButtonBehavior, BoxLayout):
     def __init__(self, text="", icon=None, bg_color=THEME_COLORS['primary'], text_color=(1, 1, 1, 1), 
@@ -331,7 +339,9 @@ class FaceScreen(Widget):
 
     # -------------- Remote WebSocket for Keyboard Commands --------------
     def start_remote_ws(self):
-        WS_SERVER = "ws://128.197.53.43:3000"  # Update with your server address
+        # WS_SERVER = "ws://128.197.53.43:3000"  # Update with your server address
+        WS_SERVER = WS_SERVER_URL
+
         self.remote_ws = websocket.WebSocketApp(
             WS_SERVER,
             on_message=self.on_remote_message,
@@ -427,7 +437,9 @@ class ConnectScreen(Screen):
     def send_passcode_to_server(self):
         def post_passcode():
             try:
-                url = "http://128.197.53.43:3000/api/connect"  # Update to your server address
+                # url = "http://128.197.53.43:3000/api/connect"  # Update to your server address
+                url = f"{HTTP_SERVER_URL}/api/connect"
+
                 payload = {"passcode": self.passcode}
                 headers = {"Content-Type": "application/json"}
                 response = requests.post(url, json=payload, headers=headers, timeout=5)
@@ -437,7 +449,7 @@ class ConnectScreen(Screen):
         threading.Thread(target=post_passcode, daemon=True).start()
     
     def start_ws(self):
-        WS_SERVER = "ws://128.197.53.43:3000"  # Update to your server address
+        WS_SERVER = WS_SERVER_URL  # Update to your server address
         self.ws = websocket.WebSocketApp(
             WS_SERVER,
             on_message=self.on_ws_message,
@@ -640,7 +652,8 @@ class ManualControlScreen(Screen):
         header = HeaderBar(title="Manual Robot Control")
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
-        self.server_ip = "ws://10.192.31.229:3000"
+        # self.server_ip = "ws://10.192.31.229:3000"
+        self.server_ip = WS_SERVER_URL
         self.ws_client = WebSocketClient(self.server_ip)
         self.control_grid = self.create_control_grid()
         self.main_layout.add_widget(self.control_grid)
@@ -707,7 +720,7 @@ class QRScreen(Screen):
             Color(*THEME_COLORS['primary'])
             self.camera_border_rect = Rectangle(pos=camera_border.pos, size=camera_border.size)
         camera_border.bind(pos=self.update_camera_border, size=self.update_camera_border)
-        self.camera = Camera(play=True, resolution=(1280, 720), index=1)
+        self.camera = Camera(play=True, resolution=(1280, 720))
         self.camera.allow_stretch = True
         self.image_display = Image()
         camera_border.add_widget(self.image_display)
