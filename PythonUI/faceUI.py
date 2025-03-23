@@ -199,7 +199,7 @@ class FaceScreen(Widget):
         self.eye_size = (Window.width * 0.25, Window.height * 0.5)
         self.eye_spacing = Window.width * 0.5
 
-        # Eye movement offsets
+        # Eye movement offsets (updated only via remote commands)
         self.eye_offset_x = 0
         self.eye_offset_y = 0
 
@@ -208,12 +208,6 @@ class FaceScreen(Widget):
             Color(*THEME_COLORS['background'])
             self.bg = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self.update_bg, size=self.update_bg)
-
-        # Initialize local keyboard controls
-        self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
-        if self._keyboard:
-            self._keyboard.bind(on_key_down=self.on_key_down)
-            self._keyboard.bind(on_key_up=self.on_key_up)
 
         # Draw eyes
         with self.canvas:
@@ -243,7 +237,7 @@ class FaceScreen(Widget):
         self.add_widget(self.mouth_widget)
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
 
-        # Schedule random audio announcements (existing logic)
+        # Schedule random audio announcements
         self.schedule_random_audio()
 
         # Start remote WebSocket to receive keyboard commands from Node.js (from React Native)
@@ -265,10 +259,9 @@ class FaceScreen(Widget):
         self.right_eye.pos = (right_x, right_y)
 
     def update_mouth_position(self, *args):
-        # Now include eye_offset_x so that the mouth shifts side to side along with the eyes.
         self.mouth_widget.pos = (
             self.center_x - self.mouth_widget.width / 2 + self.eye_offset_x,
-            self.center_y - self.eye_size[1] / 2 - 20
+            self.center_y - self.eye_size[1] / 2 + self.eye_offset_y - 20
         )
 
     def on_resize(self, *args):
@@ -277,26 +270,6 @@ class FaceScreen(Widget):
         self.left_eye.size = self.eye_size
         self.right_eye.size = self.eye_size
         self.update_positions()
-
-    def on_key_down(self, keyboard, keycode, text, modifiers):
-        movement_x = 300
-        movement_y = 200
-        if keycode[1] == 'w':
-            self.eye_offset_y = movement_y
-        elif keycode[1] == 's':
-            self.eye_offset_y = -movement_y
-        elif keycode[1] == 'a':
-            self.eye_offset_x = -movement_x
-        elif keycode[1] == 'd':
-            self.eye_offset_x = movement_x
-        self.update_positions()
-        self.update_mouth_position()
-
-    def on_key_up(self, keyboard, keycode):
-        self.eye_offset_x = 0
-        self.eye_offset_y = 0
-        self.update_positions()
-        self.update_mouth_position()
 
     def blink(self, dt):
         if not self.blinking:
@@ -315,7 +288,6 @@ class FaceScreen(Widget):
         Clock.schedule_once(self.random_audio, delay)
 
     def random_audio(self, dt):
-        # (Existing audio logic remains unchanged)
         from kivy.core.audio import SoundLoader
         audio_files = [
             "audio/Hi_Im_SmoothOperator.mp3",
@@ -346,11 +318,16 @@ class FaceScreen(Widget):
             self.mouth_anim.cancel(self.mouth_widget)
         self.mouth_widget.mouth_open = 0.1
 
-    def _keyboard_closed(self):
-        if self._keyboard:
-            self._keyboard.unbind(on_key_down=self.on_key_down)
-            self._keyboard.unbind(on_key_up=self.on_key_up)
-            self._keyboard = None
+    # Remove local keyboard control methods (on_key_down, on_key_up) entirely
+
+    # Restore tap-anywhere functionality to go to the menu screen:
+    def on_touch_down(self, touch):
+        # If the help button is tapped, let it handle the touch.
+        if self.help_button.collide_point(*touch.pos):
+            return super().on_touch_down(touch)
+        # Otherwise, switch to the menu screen.
+        self.switch_screen_callback()
+        return super().on_touch_down(touch)
 
     # -------------- Remote WebSocket for Keyboard Commands --------------
     def start_remote_ws(self):
@@ -368,7 +345,6 @@ class FaceScreen(Widget):
         print("FaceScreen remote WS message:", message)
         command = message.strip()
         if command in ['w', 'a', 's', 'd', 'x']:
-            # Process remote keyboard command on the main thread
             Clock.schedule_once(lambda dt: self.process_remote_command(command), 0)
         else:
             print("Received unknown remote command:", command)
@@ -394,14 +370,10 @@ class FaceScreen(Widget):
         elif command == 'd':
             self.eye_offset_x = movement_x
         elif command == 'x':
-            # For stop command, reset offsets immediately.
             self.eye_offset_x = 0
             self.eye_offset_y = 0
         self.update_positions()
         self.update_mouth_position()
-        # If not a stop command, schedule a reset after a short delay.
-        if command != 'x':
-            Clock.schedule_once(lambda dt: self.reset_remote_offsets(), 0.3)
 
     def reset_remote_offsets(self):
         self.eye_offset_x = 0
