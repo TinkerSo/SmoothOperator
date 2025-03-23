@@ -188,6 +188,7 @@ class MouthWidget(Widget):
 
 
 # ------------------ FaceScreen ------------------
+
 class FaceScreen(Widget):
     def __init__(self, switch_screen_callback, **kwargs):
         super().__init__(**kwargs)
@@ -202,13 +203,13 @@ class FaceScreen(Widget):
         self.eye_offset_x = 0
         self.eye_offset_y = 0
 
-        # Set background color
+        # Set background
         with self.canvas.before:
             Color(*THEME_COLORS['background'])
             self.bg = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self.update_bg, size=self.update_bg)
 
-        # Initialize keyboard controls
+        # Initialize local keyboard controls
         self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
         if self._keyboard:
             self._keyboard.bind(on_key_down=self.on_key_down)
@@ -224,7 +225,7 @@ class FaceScreen(Widget):
         self.bind(pos=self.update_positions, size=self.on_resize)
         Clock.schedule_interval(self.blink, 3)
 
-        # Add accent round help button at bottom-right corner
+        # Add help button
         self.help_button = RoundedButton(
             text="?",
             bg_color=THEME_COLORS['accent'],
@@ -235,68 +236,21 @@ class FaceScreen(Widget):
         )
         self.help_button.bind(on_press=lambda x: App.get_running_app().switch_to_help())
         self.add_widget(self.help_button)
-        self.bind(size=self.update_help_button_position, pos=self.update_help_button_position)
+        self.bind(pos=self.update_help_button_position, size=self.update_help_button_position)
 
-        # Add mouth widget below eyes
+        # Add mouth widget
         self.mouth_widget = MouthWidget(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
         self.add_widget(self.mouth_widget)
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
 
-        # Schedule random audio announcements
+        # Schedule random audio announcements (existing logic)
         self.schedule_random_audio()
+
+        # Start remote WebSocket to receive keyboard commands from Node.js (from React Native)
+        self.start_remote_ws()
 
     def update_help_button_position(self, *args):
         self.help_button.pos = (self.width - self.help_button.width - 10, 10)
-
-    def update_mouth_position(self, *args):
-        # Position the mouth at a fixed offset below the eyes
-        self.mouth_widget.pos = (self.center_x - self.mouth_widget.width / 2,
-                                 self.center_y - self.eye_size[1] / 2 - 20)
-
-    def schedule_random_audio(self, dt=0):
-        delay = random.randint(10, 30)
-        Clock.schedule_once(self.random_audio, delay)
-
-    def random_audio(self, dt):
-        audio_files = [
-            "audio/Hi_Im_SmoothOperator.mp3",
-            "audio/BEEPBEEP.mp3",
-        ]
-        chosen_audio = random.choice(audio_files)
-        self.play_audio(chosen_audio)
-        self.schedule_random_audio()
-
-    def play_audio(self, file_path):
-        sound = SoundLoader.load(file_path)
-        if sound:
-            self.start_mouth_animation()
-            sound.play()
-            if sound.length:
-                Clock.schedule_once(lambda dt: self.stop_mouth_animation(), sound.length)
-        else:
-            print("Unable to load audio file:", file_path)
-
-    def start_mouth_animation(self):
-        # Animate the mouth_open property between 0.1 (closed) and 0.8 (open)
-        self.mouth_anim = Animation(mouth_open=0.8, duration=0.2) + Animation(mouth_open=0.1, duration=0.2)
-        self.mouth_anim.repeat = True
-        self.mouth_anim.start(self.mouth_widget)
-
-    def stop_mouth_animation(self):
-        if hasattr(self, 'mouth_anim'):
-            self.mouth_anim.cancel(self.mouth_widget)
-        self.mouth_widget.mouth_open = 0.1
-
-    def on_touch_down(self, touch):
-        if self.help_button.collide_point(*touch.pos):
-            return super().on_touch_down(touch)
-        self.switch_screen_callback()
-
-    def _keyboard_closed(self):
-        if self._keyboard:
-            self._keyboard.unbind(on_key_down=self.on_key_down)
-            self._keyboard.unbind(on_key_up=self.on_key_up)
-            self._keyboard = None
 
     def update_bg(self, *args):
         self.bg.pos = self.pos
@@ -309,6 +263,13 @@ class FaceScreen(Widget):
         right_y = self.center_y - self.eye_size[1] / 2 + self.eye_offset_y
         self.left_eye.pos = (left_x, left_y)
         self.right_eye.pos = (right_x, right_y)
+
+    def update_mouth_position(self, *args):
+        # Now include eye_offset_x so that the mouth shifts side to side along with the eyes.
+        self.mouth_widget.pos = (
+            self.center_x - self.mouth_widget.width / 2 + self.eye_offset_x,
+            self.center_y - self.eye_size[1] / 2 - 20
+        )
 
     def on_resize(self, *args):
         self.eye_size = (Window.width * 0.25, Window.height * 0.5)
@@ -329,11 +290,13 @@ class FaceScreen(Widget):
         elif keycode[1] == 'd':
             self.eye_offset_x = movement_x
         self.update_positions()
+        self.update_mouth_position()
 
     def on_key_up(self, keyboard, keycode):
         self.eye_offset_x = 0
         self.eye_offset_y = 0
         self.update_positions()
+        self.update_mouth_position()
 
     def blink(self, dt):
         if not self.blinking:
@@ -346,6 +309,106 @@ class FaceScreen(Widget):
         self.left_eye.size = self.eye_size
         self.right_eye.size = self.eye_size
         self.blinking = False
+
+    def schedule_random_audio(self, dt=0):
+        delay = random.randint(10, 30)
+        Clock.schedule_once(self.random_audio, delay)
+
+    def random_audio(self, dt):
+        # (Existing audio logic remains unchanged)
+        from kivy.core.audio import SoundLoader
+        audio_files = [
+            "audio/Hi_Im_SmoothOperator.mp3",
+            "audio/BEEPBEEP.mp3",
+        ]
+        chosen_audio = random.choice(audio_files)
+        self.play_audio(chosen_audio)
+        self.schedule_random_audio()
+
+    def play_audio(self, file_path):
+        from kivy.core.audio import SoundLoader
+        sound = SoundLoader.load(file_path)
+        if sound:
+            self.start_mouth_animation()
+            sound.play()
+            if sound.length:
+                Clock.schedule_once(lambda dt: self.stop_mouth_animation(), sound.length)
+        else:
+            print("Unable to load audio file:", file_path)
+
+    def start_mouth_animation(self):
+        self.mouth_anim = Animation(mouth_open=0.8, duration=0.2) + Animation(mouth_open=0.1, duration=0.2)
+        self.mouth_anim.repeat = True
+        self.mouth_anim.start(self.mouth_widget)
+
+    def stop_mouth_animation(self):
+        if hasattr(self, 'mouth_anim'):
+            self.mouth_anim.cancel(self.mouth_widget)
+        self.mouth_widget.mouth_open = 0.1
+
+    def _keyboard_closed(self):
+        if self._keyboard:
+            self._keyboard.unbind(on_key_down=self.on_key_down)
+            self._keyboard.unbind(on_key_up=self.on_key_up)
+            self._keyboard = None
+
+    # -------------- Remote WebSocket for Keyboard Commands --------------
+    def start_remote_ws(self):
+        WS_SERVER = "ws://128.197.53.43:3000"  # Update with your server address
+        self.remote_ws = websocket.WebSocketApp(
+            WS_SERVER,
+            on_message=self.on_remote_message,
+            on_error=self.on_remote_error,
+            on_close=self.on_remote_close,
+            on_open=self.on_remote_open
+        )
+        threading.Thread(target=self.remote_ws.run_forever, daemon=True).start()
+
+    def on_remote_message(self, ws, message):
+        print("FaceScreen remote WS message:", message)
+        command = message.strip()
+        if command in ['w', 'a', 's', 'd', 'x']:
+            # Process remote keyboard command on the main thread
+            Clock.schedule_once(lambda dt: self.process_remote_command(command), 0)
+        else:
+            print("Received unknown remote command:", command)
+
+    def on_remote_error(self, ws, error):
+        print("FaceScreen remote WS error:", error)
+
+    def on_remote_close(self, ws):
+        print("FaceScreen remote WS closed")
+
+    def on_remote_open(self, ws):
+        print("FaceScreen remote WS opened")
+
+    def process_remote_command(self, command):
+        movement_x = 300
+        movement_y = 200
+        if command == 'w':
+            self.eye_offset_y = movement_y
+        elif command == 's':
+            self.eye_offset_y = -movement_y
+        elif command == 'a':
+            self.eye_offset_x = -movement_x
+        elif command == 'd':
+            self.eye_offset_x = movement_x
+        elif command == 'x':
+            # For stop command, reset offsets immediately.
+            self.eye_offset_x = 0
+            self.eye_offset_y = 0
+        self.update_positions()
+        self.update_mouth_position()
+        # If not a stop command, schedule a reset after a short delay.
+        if command != 'x':
+            Clock.schedule_once(lambda dt: self.reset_remote_offsets(), 0.3)
+
+    def reset_remote_offsets(self):
+        self.eye_offset_x = 0
+        self.eye_offset_y = 0
+        self.update_positions()
+        self.update_mouth_position()
+
 
 # ------------------ ConnectScreen ------------------
 
@@ -384,16 +447,15 @@ class ConnectScreen(Screen):
         
         self.add_widget(self.main_layout)
         
-        # Send the passcode to the Node.js server
+        # Send the passcode to the Node.js server via HTTP POST
         self.send_passcode_to_server()
+        # Start a WebSocket connection to listen for AUTH_SUCCESS messages
+        self.start_ws()
     
     def send_passcode_to_server(self):
         def post_passcode():
             try:
-                # Update the URL to match your Node.js server endpoint
-                url = "http://128.197.53.43:3000/api/connect" # Jetson on Ethernet
-                # url = 'ws://10.192.31.229:3000'; # Jetson on BU Guest
-                # url = 'ws://192.168.1.5:3000'; # Jetson on Netgear
+                url = "http://128.197.53.43:3000/api/connect"  # Update to your server address
                 payload = {"passcode": self.passcode}
                 headers = {"Content-Type": "application/json"}
                 response = requests.post(url, json=payload, headers=headers, timeout=5)
@@ -401,7 +463,57 @@ class ConnectScreen(Screen):
             except Exception as e:
                 print("Error sending passcode:", e)
         threading.Thread(target=post_passcode, daemon=True).start()
-
+    
+    def start_ws(self):
+        WS_SERVER = "ws://128.197.53.43:3000"  # Update to your server address
+        self.ws = websocket.WebSocketApp(
+            WS_SERVER,
+            on_message=self.on_ws_message,
+            on_error=self.on_ws_error,
+            on_close=self.on_ws_close,
+            on_open=self.on_ws_open
+        )
+        threading.Thread(target=self.ws.run_forever, daemon=True).start()
+    
+    def on_ws_message(self, ws, message):
+        print("ConnectScreen received WebSocket message:", message)
+        if message.strip() == "AUTH_SUCCESS":
+            Clock.schedule_once(lambda dt: self.on_auth_success(), 0)
+    
+    def on_ws_error(self, ws, error):
+        print("ConnectScreen WebSocket error:", error)
+    
+    def on_ws_close(self, ws):
+        print("ConnectScreen WebSocket closed")
+    
+    def on_ws_open(self, ws):
+        print("ConnectScreen WebSocket opened")
+    
+    def on_auth_success(self):
+        # Update the UI to show a success message and a button
+        self.main_layout.clear_widgets()
+        header = HeaderBar(switch_screen_callback=lambda: None, title="Connection Success!")
+        header.pos_hint = {'top': 1}
+        self.main_layout.add_widget(header)
+        success_label = Label(
+            text="Connection Success Message!",
+            font_size=40,
+            color=THEME_COLORS['success'],
+            pos_hint={'center_x': 0.5, 'center_y': 0.6}
+        )
+        self.main_layout.add_widget(success_label)
+        return_button = RoundedButton(
+            text="Return to SmoothOperator Face",
+            size_hint=(0.5, 0.2),
+            pos_hint={'center_x': 0.5, 'center_y': 0.3}
+        )
+        return_button.bind(on_release=self.return_to_face)
+        self.main_layout.add_widget(return_button)
+    
+    def return_to_face(self, instance):
+        app = App.get_running_app()
+        app.sm.transition = CardTransition(mode='pop')
+        app.sm.current = "face"
 
 # ------------------ MenuScreen ------------------
 

@@ -29,12 +29,10 @@ arduinoPort.on('error', (err) => {
     console.error(`SerialPort Error: ${err.message}`);
 });
 
-// Directly use parsed UTF-8 data
+// Directly use parsed UTF-8 data from Arduino and broadcast to WebSocket clients
 parser.on('data', (data) => {
-    const utf8Data = data.trim(); // Clean any extra whitespace/newlines
+    const utf8Data = data.trim();
     console.log(`Received from Arduino: ${utf8Data}`);
-
-    // Broadcast to WebSocket clients
     wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(utf8Data);
@@ -52,8 +50,7 @@ app.get('/', (req, res) => {
     res.send('Hello from the Jetson Nano Node.js Server!');
 });
 
-// Function to map commands to vCommand strings
-// Flipped the values to match the physical robot.
+// Function to map commands to vCommand strings (flipped for the physical robot)
 function getVCommand(command) {
     switch (command) {
         case 'w': return "-0.100 0.000 0.000";
@@ -73,11 +70,9 @@ app.post('/api/arduino', (req, res) => {
         return res.status(400).send({ error: 'Invalid command. Only "w", "a", "s", "d", and "x" are allowed.' });
     }
     
-    command = command.trim();  // Remove any extra whitespace
+    command = command.trim();
     const vCommand = getVCommand(command);
-
     console.log(`Sending command to Arduino: ${vCommand}`);
-
     arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
         if (err) {
             console.error(`Error writing to Arduino: ${err}`);
@@ -88,14 +83,12 @@ app.post('/api/arduino', (req, res) => {
     });
 });
 
-// API endpoint for ROS robot_command listener to send vx, vy, vtheta for autonomous drive
+// API endpoint for ROS commands
 app.post('/api/ros', (req, res) => {
-    const data = req.body.trim();  // Extract raw text data
-
+    const data = req.body.trim();
     if (!data) {
         return res.status(400).send({ error: 'Invalid data format' });
     }
-
     console.log(`Received from ROS: ${data}`);
     arduinoPort.write(`${data}\n`, 'utf8', (err) => {
         if (err) {
@@ -110,7 +103,7 @@ app.post('/api/ros', (req, res) => {
 // Global variable to store the current passcode
 let currentPasscode = null;
 
-// Endpoint to receive the passcode from the robot (from your Kivy ConnectScreen)
+// Endpoint to receive the passcode from the robot
 app.post('/api/connect', (req, res) => {
     const { passcode } = req.body;
     if (!passcode) {
@@ -139,7 +132,6 @@ app.post('/api/authenticate', (req, res) => {
     }
 });
 
-
 // Start HTTP Server
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`HTTP Server running on http://0.0.0.0:${PORT}`);
@@ -147,7 +139,6 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 
 // WebSocket Server
 const wss = new WebSocket.Server({ server });
-
 console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
 
 wss.on('connection', (ws, req) => {
@@ -157,7 +148,7 @@ wss.on('connection', (ws, req) => {
     ws.on('message', (message) => {
         const trimmedMessage = message.toString().trim();
         
-        // If the message is "AUTH_SUCCESS", broadcast it to all connected clients.
+        // If the message is "AUTH_SUCCESS", broadcast it.
         if (trimmedMessage === 'AUTH_SUCCESS') {
             console.log("Received AUTH_SUCCESS. Broadcasting to all clients...");
             wss.clients.forEach((client) => {
@@ -167,22 +158,33 @@ wss.on('connection', (ws, req) => {
             });
             return; // Do not process further.
         }
-        console.log(`Received WebSocket command: ${trimmedMessage}`);
-        const vCommand = getVCommand(message.toString().trim());
 
-        if (!vCommand) {
-            console.error(`Invalid WebSocket command: ${message}`);
-            return;
-        }
-
-        // Directly write UTF-8 encoded data
-        arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
-            if (err) {
-                console.error(`Error sending to Arduino: ${err}`);
-            } else {
-                console.log(`Forwarded WebSocket command to Arduino: ${vCommand}`);
+        // Check if it's a movement command
+        if (['w', 'a', 's', 'd', 'x'].includes(trimmedMessage)) {
+            console.log(`Received movement command: ${trimmedMessage}`);
+            // Broadcast the movement command to all clients.
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(trimmedMessage);
+                }
+            });
+            
+            // Map and forward the command to the Arduino.
+            const vCommand = getVCommand(trimmedMessage);
+            if (!vCommand) {
+                console.error(`Invalid movement command: ${trimmedMessage}`);
+                return;
             }
-        });
+            arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
+                if (err) {
+                    console.error(`Error writing to Arduino: ${err}`);
+                } else {
+                    console.log(`Forwarded movement command to Arduino: ${vCommand}`);
+                }
+            });
+        } else {
+            console.error(`Received unknown WebSocket message: ${trimmedMessage}`);
+        }
     });
 
     ws.on('close', () => {
