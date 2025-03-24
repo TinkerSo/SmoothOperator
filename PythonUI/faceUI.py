@@ -49,8 +49,8 @@ Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
 # SERVER_IP = "128.197.53.43"  # Ethernet
-SERVER_IP = "10.192.31.229:3000"  # BU Guest
-# SERVER_IP = "192.168.1.5:3000"  # Netgear
+SERVER_IP = "10.192.31.229"  # BU Guest
+# SERVER_IP = "192.168.1.5"  # Netgear
 SERVER_PORT = 3000
 WS_SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
 HTTP_SERVER_URL = f"http://{SERVER_IP}:{SERVER_PORT}"
@@ -296,7 +296,7 @@ class FaceScreen(Widget):
         Clock.schedule_once(self.random_audio, delay)
 
     def random_audio(self, dt):
-        from kivy.core.audio import SoundLoader
+        print("Playing audio NOW")
         audio_files = [
             "audio/Hi_Im_SmoothOperator.mp3",
             "audio/BEEPBEEP.mp3",
@@ -306,7 +306,6 @@ class FaceScreen(Widget):
         self.schedule_random_audio()
 
     def play_audio(self, file_path):
-        from kivy.core.audio import SoundLoader
         sound = SoundLoader.load(file_path)
         if sound:
             self.start_mouth_animation()
@@ -835,7 +834,8 @@ class QRScreen(Screen):
         w, h = texture.size
         pixels = texture.pixels
         frame = np.frombuffer(pixels, np.uint8).reshape(h, w, 4)
-        rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        # rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        rotated_frame = frame
         h_rotated, w_rotated = rotated_frame.shape[:2]
         center_x, center_y = w_rotated // 2, h_rotated // 2
         qr_size = min(w_rotated, h_rotated) // 2
