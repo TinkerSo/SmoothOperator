@@ -246,7 +246,7 @@ class FaceScreen(Widget):
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
 
         # Schedule random audio announcements
-        self.schedule_random_audio()
+        # self.schedule_random_audio()
 
         # Start remote WebSocket to receive keyboard commands from Node.js (from React Native)
         self.start_remote_ws()
