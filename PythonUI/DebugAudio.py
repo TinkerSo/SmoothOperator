@@ -2,6 +2,8 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.core.audio import SoundLoader
+from kivy.config import Config
+print("Kivy audio provider:", Config.get('kivy', 'audio'))
 
 # Path to the audio file (ensure this file exists in the correct relative location)
 AUDIO_FILE = "audio/Hi_Im_SmoothOperator.mp3"
