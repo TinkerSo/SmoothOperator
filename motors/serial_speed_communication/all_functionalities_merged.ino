@@ -2,8 +2,19 @@
 #include <SoftwareSerial.h>
 #include <Adafruit_NeoPixel.h>
 
+// Define L298N Motor Driver Pins
+#define IN1 7
+#define IN2 6
+#define ENA 5
+
+// Define Bumper Switch pins
+#define front_bump 22
+#define back_bump 24
+#define left_bump 26
+#define right_bump 28
+
 // NeoPixel Configuration
-#define LED_PIN    6   
+#define LED_PIN    8   
 #define LED_COUNT  300  
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -61,14 +72,14 @@ double convertReadingToVelocity(int32_t reading) {
 
 // Send right and left displacement & velocity data
 void sendData(double right_displacement, double right_velocity, double left_displacement, double left_velocity) {
-  Serial.print("Right Displacement:");
-  Serial.print(right_displacement, 6);
-  Serial.print(",Right Velocity:");
-  Serial.print(right_velocity, 6);
-  Serial.print(",Left Displacement:");
-  Serial.print(left_displacement, 6);
-  Serial.print(",Left Velocity:");
-  Serial.println(left_velocity, 6);
+  Serial1.print("Right Displacement:");
+  Serial1.print(right_displacement, 6);
+  Serial1.print(",Right Velocity:");
+  Serial1.print(right_velocity, 6);
+  Serial1.print(",Left Displacement:");
+  Serial1.print(left_displacement, 6);
+  Serial1.print(",Left Velocity:");
+  Serial1.println(left_velocity, 6);
 }
 
 // Display encoder and speed for both motors
@@ -102,10 +113,36 @@ void tankDrive(float V, float omega, float W, float &leftSpeed, float &rightSpee
     rightSpeed = V + (omega * W / 2);
 }
 
+// functions for actuator
+// Move Motor Forward
+void liftUp() {
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+}
+
+// Move Motor Backward
+void liftDown() {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+}
+
+// Stop Motor
+void liftStop() {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, LOW);
+}
+
+// Set Motor Speed (0-255)
+void setLiftSpeed(float speed) {
+    analogWrite(ENA, speed*255);
+}
+
 void setup() {
   Serial.begin(115200);
+  Serial1.begin(115200);
   roboclaw.begin(38400);
   delay(100);
+
   
   while (!Serial) {}  
   // Initialize NeoPixels
@@ -133,6 +170,17 @@ void setup() {
   led_color[1] = 0;
   led_color[2] = 0;
   setLEDs(strip.Color(led_color[0], led_color[1], led_color[2]));
+
+  // Set Actuator pins
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENA, OUTPUT);
+
+  //Set Bumper pins;
+  pinMode(left_bump, INPUT);
+  pinMode(right_bump, INPUT);
+  pinMode(front_bump, INPUT);
+  pinMode(back_bump, INPUT);
 }
 
 void loop() {
@@ -167,17 +215,20 @@ void loop() {
 
     int firstSpace = input.indexOf(' ');
     int secondSpace = input.indexOf(' ', firstSpace + 1);
+    int thirdSpace = input.indexOf(' ', secondSpace + 1);
 
-    if (firstSpace == -1 || secondSpace == -1) {
+    if (firstSpace == -1 || secondSpace == -1 || thirdSpace == -1) {
       Serial.println("Error: could not parse input (not enough spaces).");
     } else {
       String Vx_str = input.substring(0, firstSpace);
       String Vy_str = input.substring(firstSpace + 1, secondSpace);
       String Vtheta_str = input.substring(secondSpace + 1);
+      String lift_str = input.substring(thirdSpace + 1);
 
       float Vx = Vx_str.toFloat();
       float Vy = Vy_str.toFloat();
       float Vtheta = Vtheta_str.toFloat();
+      float lift_action = lift_str.toFloat();
 
       Serial.print("Parsed Vx: ");
       Serial.println(Vx, 3);
@@ -197,6 +248,17 @@ void loop() {
         led_color[2] = 0;
       }
 
+      if(lift_action < 0){
+        setLiftSpeed(-lift_action);
+        liftDown();
+      }
+      else if(lift_action > 0){
+        setLiftSpeed(lift_action);
+        liftUp();
+      }
+      else{
+        liftStop();
+      }
       setLEDs(strip.Color(led_color[0], led_color[1], led_color[2]));
 
       tankDrive(Vx, Vtheta, wheel_width, leftMotorSpeed, rightMotorSpeed);
