@@ -222,7 +222,7 @@ void loop() {
     } else {
       String Vx_str = input.substring(0, firstSpace);
       String Vy_str = input.substring(firstSpace + 1, secondSpace);
-      String Vtheta_str = input.substring(secondSpace + 1);
+      String Vtheta_str = input.substring(secondSpace + 1, thirdSpace);
       String lift_str = input.substring(thirdSpace + 1);
 
       float Vx = Vx_str.toFloat();
@@ -236,6 +236,8 @@ void loop() {
       Serial.println(Vy, 3);
       Serial.print("Parsed Vtheta: ");
       Serial.println(Vtheta, 3);
+      Serial.print("Parsed lift_str: ");
+      Serial.println(lift_str, 3);
 
       if(Vx == 0 && Vy == 0 && Vtheta == 0){ // STOPPED
         led_color[0] = 255; // Red
