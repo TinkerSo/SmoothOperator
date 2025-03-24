@@ -87,7 +87,7 @@ void displayspeed() {
   double left_velocity = valid4 ? convertReadingToVelocity(speed_left) : 0;
 
   if ((valid1 && valid2) || (valid3 && valid4)) {
-    sendData(right_displacement, right_velocity, left_displacement, left_velocity);
+    sendData(-right_displacement, -right_velocity, left_displacement, left_velocity);
   }
 }
 
@@ -142,7 +142,7 @@ void loop() {
   cm1=Inch1*2.54;
 
   //// for ROS
-  // displayspeed();
+  displayspeed();
   // Serial.println(cm1);
 
   // Check for obstacles
