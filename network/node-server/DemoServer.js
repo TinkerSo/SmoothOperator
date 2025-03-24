@@ -65,27 +65,6 @@ function getVCommand(command) {
     }
 }
 
-// API to Send Commands to Arduino with UTF-8 Encoding
-app.post('/api/arduino', (req, res) => {
-    let { command } = req.body;
-    
-    if (!command || !getVCommand(command.trim())) {
-        return res.status(400).send({ error: 'Invalid command. Only "w", "a", "s", "d", and "x" are allowed.' });
-    }
-    
-    command = command.trim();
-    const vCommand = getVCommand(command);
-    console.log(`Sending command to Arduino: ${vCommand}`);
-    arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
-        if (err) {
-            console.error(`Error writing to Arduino: ${err}`);
-            return res.status(500).send({ error: 'Failed to send command to Arduino' });
-        }
-        console.log(`Command sent to Arduino: ${vCommand}`);
-        res.status(200).send({ message: `Command '${command}' sent successfully` });
-    });
-});
-
 // API endpoint for ROS commands
 app.post('/api/ros', (req, res) => {
     const data = req.body.trim();
