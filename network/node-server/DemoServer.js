@@ -77,8 +77,11 @@ app.post('/api/ros', (req, res) => {
             console.error(`Error writing to Arduino: ${err}`);
             return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
         }
-        console.log(`ROS command sent to Arduino: ${data}`);
-        res.status(200).send({ message: `ROS command sent successfully` });
+        // Use drain() to ensure the serial command is fully sent
+        arduinoPort.drain(() => {
+            console.log(`Drain complete for ROS command: ${data}`);
+            res.status(200).send({ message: `ROS command sent successfully` });
+        });
     });
 });
 
@@ -162,6 +165,10 @@ wss.on('connection', (ws, req) => {
                     console.error(`Error writing to Arduino: ${err}`);
                 } else {
                     console.log(`Forwarded movement command to Arduino: ${vCommand}`);
+                    // Use drain() to ensure that the command is fully sent
+                    arduinoPort.drain(() => {
+                        console.log(`Drain complete for movement command: ${vCommand}`);
+                    });
                 }
             });
         } else {
