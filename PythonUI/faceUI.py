@@ -748,7 +748,7 @@ class LoadLuggageScreen(Screen):
         up_btn.bind(on_press=lambda instance: self.send_command("+"))
         up_btn.bind(on_release=lambda instance: self.send_command("="))
         down_btn.bind(on_press=lambda instance: self.send_command("-"))
-        down_btn.bind(on_release=lambda instance: self.send_command("+"))
+        down_btn.bind(on_release=lambda instance: self.send_command("="))
         control_layout.add_widget(up_btn)
         control_layout.add_widget(down_btn)
         self.main_layout.add_widget(control_layout)
