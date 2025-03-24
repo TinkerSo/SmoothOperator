@@ -35,7 +35,7 @@ from kivy.properties import NumericProperty
 THEME_COLORS = {
     'primary': get_color_from_hex('#03A9F4'),         # Blue
     'secondary': get_color_from_hex('#2196F3'),         # Light Blue
-    'accent': get_color_from_hex('##FFAC63'),            # Orange
+    'accent': get_color_from_hex('#FFAC63'),            # Orange
     'background': get_color_from_hex('#FFFFFF'),        # White
     'text': get_color_from_hex('#212121'),              # Dark Grey
     'success': get_color_from_hex('#4CAF50'),           # Green
@@ -48,8 +48,8 @@ Window.size = (800, 600)
 Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
-SERVER_IP = "128.197.53.43" # Ethernet
-# SERVER_IP = "10.192.31.229:3000" # BU Guest
+SERVER_IP = "128.197.53.43"  # Ethernet
+# SERVER_IP = "10.192.31.229:3000"  # BU Guest
 SERVER_PORT = 3000
 WS_SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
 HTTP_SERVER_URL = f"http://{SERVER_IP}:{SERVER_PORT}"
@@ -107,7 +107,7 @@ class RoundedButton(ButtonBehavior, BoxLayout):
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
 
 class HeaderBar(BoxLayout):
-    def __init__(self, title="SmoothOperatort", icon=None, switch_screen_callback=lambda: None, **kwargs):
+    def __init__(self, title="SmoothOperator", icon=None, switch_screen_callback=lambda: None, **kwargs):
         # Remove the custom property so it isn't passed to the base widget's __init__
         kwargs.pop('switch_screen_callback', None)
         super().__init__(orientation='horizontal', size_hint=(1, None), height=60, **kwargs)
@@ -192,7 +192,6 @@ class MouthWidget(Widget):
         ]
         
         self.smile_line.bezier = points
-
 
 
 # ------------------ FaceScreen ------------------
@@ -499,15 +498,17 @@ class ConnectScreen(Screen):
         app.sm.transition = CardTransition(mode='pop')
         app.sm.current = "face"
 
+
 # ------------------ MenuScreen ------------------
 
 class MenuScreen(FloatLayout):
-    def __init__(self, switch_to_manual, switch_to_qr, switch_to_help, switch_to_connect, **kwargs):
+    def __init__(self, switch_to_manual, switch_to_qr, switch_to_help, switch_to_connect, switch_to_load_luggage, **kwargs):
         super().__init__(**kwargs)
         self.switch_to_manual = switch_to_manual
         self.switch_to_qr = switch_to_qr
         self.switch_to_help = switch_to_help
         self.switch_to_connect = switch_to_connect
+        self.switch_to_load_luggage = switch_to_load_luggage
 
         with self.canvas.before:
             Color(*THEME_COLORS['background'])
@@ -526,9 +527,18 @@ class MenuScreen(FloatLayout):
             orientation='vertical',
             spacing=20,
             padding=[50, 50],
-            size_hint=(0.8, 0.5),
+            size_hint=(0.8, 0.7),
             pos_hint={'center_x': 0.5, 'center_y': 0.45}
         )
+
+        load_luggage_btn = RoundedButton(
+            text="Load Luggage",
+            bg_color=THEME_COLORS['success'],
+            font_size=50,
+            height=80
+        )
+        load_luggage_btn.bind(on_press=lambda x: self.switch_to_load_luggage())
+        button_layout.add_widget(load_luggage_btn)
 
         manual_btn = RoundedButton(
             text="Manual Robot Control",
@@ -550,7 +560,7 @@ class MenuScreen(FloatLayout):
         
         connect_btn = RoundedButton(
             text="Connect to App",
-            bg_color=THEME_COLORS['primary'],  # You can choose a different color if desired
+            bg_color=THEME_COLORS['primary'],
             font_size=50,
             height=80
         )
@@ -562,6 +572,15 @@ class MenuScreen(FloatLayout):
             bg_color=THEME_COLORS['accent'],
             font_size=50,
             height=80
+        )
+
+        self.help_button = RoundedButton(
+            text="?",
+            bg_color=THEME_COLORS['accent'],
+            font_size=30,
+            radius=40,
+            size_hint=(None, None),
+            size=(80, 80)
         )
         help_btn.bind(on_press=lambda x: self.switch_to_help())
         button_layout.add_widget(help_btn)
@@ -640,6 +659,7 @@ class WebSocketClient:
             print("WebSocket is not connected.")
             return False
 
+
 # ------------------ ManualControlScreen ------------------
 class ManualControlScreen(Screen):
     def __init__(self, **kwargs):
@@ -652,7 +672,6 @@ class ManualControlScreen(Screen):
         header = HeaderBar(title="Manual Robot Control")
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
-        # self.server_ip = "ws://10.192.31.229:3000"
         self.server_ip = WS_SERVER_URL
         self.ws_client = WebSocketClient(self.server_ip)
         self.control_grid = self.create_control_grid()
@@ -698,6 +717,52 @@ class ManualControlScreen(Screen):
 
     def send_command(self, command):
         return self.ws_client.send(command) if self.ws_client else False
+
+
+# ------------------ LoadLuggageScreen ------------------
+class LoadLuggageScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.main_layout = FloatLayout()
+        with self.main_layout.canvas.before:
+            Color(*THEME_COLORS['background'])
+            self.bg = Rectangle(pos=self.main_layout.pos, size=self.main_layout.size)
+        self.main_layout.bind(pos=self.update_layout, size=self.update_layout)
+        header = HeaderBar(title="Load Luggage")
+        header.pos_hint = {'top': 1}
+        self.main_layout.add_widget(header)
+        # Create a WebSocket client to send luggage commands
+        self.server_ip = WS_SERVER_URL
+        self.ws_client = WebSocketClient(self.server_ip)
+        # Create control layout with two buttons: Up and Down
+        control_layout = BoxLayout(
+            orientation='vertical',
+            spacing=20,
+            padding=[50, 50],
+            size_hint=(0.4, 0.4),
+            pos_hint={'center_x': 0.5, 'center_y': 0.5}
+        )
+        up_btn = RoundedButton(text="Up", bg_color=THEME_COLORS['primary'], font_size=50, height=80)
+        down_btn = RoundedButton(text="Down", bg_color=THEME_COLORS['primary'], font_size=50, height=80)
+        # Bind on_press to send the appropriate command and on_release to send a stop command
+        up_btn.bind(on_press=lambda instance: self.send_command("+"))
+        up_btn.bind(on_release=lambda instance: self.send_command("="))
+        down_btn.bind(on_press=lambda instance: self.send_command("-"))
+        down_btn.bind(on_release=lambda instance: self.send_command("+"))
+        control_layout.add_widget(up_btn)
+        control_layout.add_widget(down_btn)
+        self.main_layout.add_widget(control_layout)
+        self.add_widget(self.main_layout)
+    
+    def update_layout(self, *args):
+        self.bg.pos = self.main_layout.pos
+        self.bg.size = self.main_layout.size
+    
+    def send_command(self, command):
+        if self.ws_client:
+            return self.ws_client.send(command)
+        return False
+
 
 # ------------------ QR Code Reader Screen ------------------
 class QRScreen(Screen):
@@ -851,6 +916,7 @@ class QRScreen(Screen):
         else:
             print("PostScanScreen not found")
 
+
 # ------------------ PostScanScreen ------------------
 class PostScanScreen(Screen):
     def __init__(self, **kwargs):
@@ -898,6 +964,7 @@ class PostScanScreen(Screen):
         app.sm.transition = CardTransition(mode='pop')
         app.sm.current = "menu"
 
+
 # ------------------ HelpScreen ------------------
 class HelpScreen(Screen):
     def __init__(self, **kwargs):
@@ -930,8 +997,8 @@ class HelpScreen(Screen):
         self.main_layout.add_widget(help_label)
         self.add_widget(self.main_layout)
 
-# ------------------ Main Application ------------------
 
+# ------------------ Main Application ------------------
 
 class SmoothOperatorApp(App):
     def build(self):
@@ -945,11 +1012,18 @@ class SmoothOperatorApp(App):
         postscan_screen = PostScanScreen(name="postscan")
         help_screen = HelpScreen(name="help")
         connect_screen = ConnectScreen(name="connect")
+        load_luggage_screen = LoadLuggageScreen(name="load_luggage")
 
         face_widget = FaceScreen(self.switch_to_menu)
         face_screen.add_widget(face_widget)
 
-        menu_widget = MenuScreen(self.switch_to_manual, self.switch_to_qr, self.switch_to_help, self.switch_to_connect)
+        menu_widget = MenuScreen(
+            switch_to_manual=self.switch_to_manual, 
+            switch_to_qr=self.switch_to_qr, 
+            switch_to_help=self.switch_to_help, 
+            switch_to_connect=self.switch_to_connect,
+            switch_to_load_luggage=self.switch_to_load_luggage
+        )
         menu_screen.add_widget(menu_widget)
 
         self.sm.add_widget(face_screen)
@@ -959,6 +1033,7 @@ class SmoothOperatorApp(App):
         self.sm.add_widget(postscan_screen)
         self.sm.add_widget(help_screen)
         self.sm.add_widget(connect_screen)
+        self.sm.add_widget(load_luggage_screen)
 
         self.sm.current = "face"
         return self.sm
@@ -982,6 +1057,10 @@ class SmoothOperatorApp(App):
     def switch_to_connect(self):
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "connect"
+        
+    def switch_to_load_luggage(self):
+        self.sm.transition = CardTransition(mode='pop')
+        self.sm.current = "load_luggage"
         
     def switch_to_postscan(self, message=None):
         if message:
