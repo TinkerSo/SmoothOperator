@@ -24,6 +24,7 @@ class DebugAudioApp(App):
 
     def play_audio(self, file_path):
         # Stop the previous sound if it's already playing
+        print("Playing Audio")
         if self.sound:
             self.sound.stop()
         self.sound = SoundLoader.load(file_path)
