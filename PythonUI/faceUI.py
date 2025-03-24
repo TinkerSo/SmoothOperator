@@ -834,8 +834,7 @@ class QRScreen(Screen):
         w, h = texture.size
         pixels = texture.pixels
         frame = np.frombuffer(pixels, np.uint8).reshape(h, w, 4)
-        # rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        rotated_frame = frame
+        rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         h_rotated, w_rotated = rotated_frame.shape[:2]
         center_x, center_y = w_rotated // 2, h_rotated // 2
         qr_size = min(w_rotated, h_rotated) // 2
