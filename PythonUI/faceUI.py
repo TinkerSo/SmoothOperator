@@ -837,6 +837,7 @@ class QRScreen(Screen):
         self.result_card_rect.size = instance.size
         self.result_card_border.rectangle = (instance.x, instance.y, instance.width, instance.height)
 
+
     def update_texture(self, dt):
         if not self.camera.texture or self.qr_scanned:
             return
@@ -844,30 +845,36 @@ class QRScreen(Screen):
         w, h = texture.size
         pixels = texture.pixels
         frame = np.frombuffer(pixels, np.uint8).reshape(h, w, 4)
-        rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        h_rotated, w_rotated = rotated_frame.shape[:2]
-        center_x, center_y = w_rotated // 2, h_rotated // 2
-        qr_size = min(w_rotated, h_rotated) // 2
+        # Make a copy of the frame to draw on without modifying the original
+        processed_frame = frame.copy()
+        
+        # Calculate center and size parameters for drawing the QR guide
+        center_x, center_y = w // 2, h // 2
+        qr_size = min(w, h) // 2
         corner_size = 30
         line_thickness = 2
         corner_color = (0, 191, 255, 255)
-        cv2.line(rotated_frame, (center_x - qr_size, center_y - qr_size), 
-                 (center_x - qr_size + corner_size, center_y - qr_size), corner_color, line_thickness)
-        cv2.line(rotated_frame, (center_x - qr_size, center_y - qr_size), 
-                 (center_x - qr_size, center_y - qr_size + corner_size), corner_color, line_thickness)
-        cv2.line(rotated_frame, (center_x + qr_size, center_y - qr_size), 
-                 (center_x + qr_size - corner_size, center_y - qr_size), corner_color, line_thickness)
-        cv2.line(rotated_frame, (center_x + qr_size, center_y - qr_size), 
-                 (center_x + qr_size, center_y - qr_size + corner_size), corner_color, line_thickness)
-        cv2.line(rotated_frame, (center_x - qr_size, center_y + qr_size), 
-                 (center_x - qr_size + corner_size, center_y + qr_size), corner_color, line_thickness)
-        cv2.line(rotated_frame, (center_x - qr_size, center_y + qr_size), 
-                 (center_x - qr_size, center_y + qr_size - corner_size), corner_color, line_thickness)
-        cv2.line(rotated_frame, (center_x + qr_size, center_y + qr_size), 
-                 (center_x + qr_size - corner_size, center_y + qr_size), corner_color, line_thickness)
-        cv2.line(rotated_frame, (center_x + qr_size, center_y + qr_size), 
-                 (center_x + qr_size, center_y + qr_size - corner_size), corner_color, line_thickness)
-        results = decode(rotated_frame)
+        
+        # Draw guide lines for the QR scanning area
+        cv2.line(processed_frame, (center_x - qr_size, center_y - qr_size),
+                (center_x - qr_size + corner_size, center_y - qr_size), corner_color, line_thickness)
+        cv2.line(processed_frame, (center_x - qr_size, center_y - qr_size),
+                (center_x - qr_size, center_y - qr_size + corner_size), corner_color, line_thickness)
+        cv2.line(processed_frame, (center_x + qr_size, center_y - qr_size),
+                (center_x + qr_size - corner_size, center_y - qr_size), corner_color, line_thickness)
+        cv2.line(processed_frame, (center_x + qr_size, center_y - qr_size),
+                (center_x + qr_size, center_y - qr_size + corner_size), corner_color, line_thickness)
+        cv2.line(processed_frame, (center_x - qr_size, center_y + qr_size),
+                (center_x - qr_size + corner_size, center_y + qr_size), corner_color, line_thickness)
+        cv2.line(processed_frame, (center_x - qr_size, center_y + qr_size),
+                (center_x - qr_size, center_y + qr_size - corner_size), corner_color, line_thickness)
+        cv2.line(processed_frame, (center_x + qr_size, center_y + qr_size),
+                (center_x + qr_size - corner_size, center_y + qr_size), corner_color, line_thickness)
+        cv2.line(processed_frame, (center_x + qr_size, center_y + qr_size),
+                (center_x + qr_size, center_y + qr_size - corner_size), corner_color, line_thickness)
+        
+        # Attempt to decode the QR code from the processed frame
+        results = decode(processed_frame)
         if results and not self.qr_scanned:
             obj = results[0]
             qr_text = obj.data.decode('utf-8')
@@ -890,9 +897,13 @@ class QRScreen(Screen):
         else:
             self.result_label.text = "Please Scan Your Boarding Pass"
             self.result_label.color = THEME_COLORS['text']
-        new_texture = Texture.create(size=(h, w))
-        new_texture.blit_buffer(rotated_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
+        
+        # Create a new texture using the original frame dimensions (w, h)
+        new_texture = Texture.create(size=(w, h))
+        new_texture.blit_buffer(processed_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
         self.image_display.texture = new_texture
+
+
 
     def flash_green_and_transition(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate):
         self.qr_scanned = True
