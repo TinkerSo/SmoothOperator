@@ -845,10 +845,14 @@ class QRScreen(Screen):
         w, h = texture.size
         pixels = texture.pixels
         frame = np.frombuffer(pixels, np.uint8).reshape(h, w, 4)
-        # Make a copy of the frame to draw on without modifying the original
-        processed_frame = frame.copy()
         
-        # Calculate center and size parameters for drawing the QR guide
+        # Rotate the frame by 180 degrees
+        rotated_frame = cv2.rotate(frame, cv2.ROTATE_180)
+        
+        # Make a copy of the rotated frame to draw on
+        processed_frame = rotated_frame.copy()
+        
+        # Calculate parameters for drawing the QR scanning guide
         center_x, center_y = w // 2, h // 2
         qr_size = min(w, h) // 2
         corner_size = 30
@@ -898,7 +902,7 @@ class QRScreen(Screen):
             self.result_label.text = "Please Scan Your Boarding Pass"
             self.result_label.color = THEME_COLORS['text']
         
-        # Create a new texture using the original frame dimensions (w, h)
+        # Create a new texture with the original dimensions and update the image display
         new_texture = Texture.create(size=(w, h))
         new_texture.blit_buffer(processed_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
         self.image_display.texture = new_texture
