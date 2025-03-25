@@ -7,6 +7,7 @@ from pyzbar.pyzbar import decode
 import json
 import random
 import requests
+import pygame
 
 from kivy.app import App
 from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition, SlideTransition, CardTransition
@@ -28,7 +29,6 @@ from kivy.utils import get_color_from_hex
 from kivy.animation import Animation
 from websocket import create_connection
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.core.audio import SoundLoader
 from kivy.properties import NumericProperty
 
 # Set app theme colors
@@ -196,6 +196,7 @@ class MouthWidget(Widget):
 
 
 # ------------------ FaceScreen ------------------
+pygame.mixer.init()
 
 class FaceScreen(Widget):
     def __init__(self, switch_screen_callback, **kwargs):
@@ -246,7 +247,7 @@ class FaceScreen(Widget):
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
 
         # Schedule random audio announcements
-        # self.schedule_random_audio()
+        self.schedule_random_audio()
 
         # Start remote WebSocket to receive keyboard commands from Node.js (from React Native)
         self.start_remote_ws()
@@ -298,22 +299,32 @@ class FaceScreen(Widget):
     def random_audio(self, dt):
         print("Playing audio NOW")
         audio_files = [
-            "audio/Hi_Im_SmoothOperator.mp3",
-            "audio/BEEPBEEP.mp3",
+            "PythonUI/audio/Hi_Im_SmoothOperator.mp3",
+            "PythonUI/audio/BEEPBEEP.mp3",
         ]
         chosen_audio = random.choice(audio_files)
         self.play_audio(chosen_audio)
         self.schedule_random_audio()
 
     def play_audio(self, file_path):
-        sound = SoundLoader.load(file_path)
-        if sound:
+        print("Playing audio with pygame...")
+        try:
+            # Stop any currently playing audio
+            if pygame.mixer.music.get_busy():
+                pygame.mixer.music.stop()
+            pygame.mixer.music.load(file_path)
+            pygame.mixer.music.play()
             self.start_mouth_animation()
-            sound.play()
-            if sound.length:
-                Clock.schedule_once(lambda dt: self.stop_mouth_animation(), sound.length)
-        else:
-            print("Unable to load audio file:", file_path)
+            # Check periodically if the audio has finished playing
+            Clock.schedule_interval(self.check_audio_finished, 0.1)
+        except Exception as e:
+            print("Unable to play audio file:", file_path, "error:", e)
+
+    def check_audio_finished(self, dt):
+        if not pygame.mixer.music.get_busy():
+            self.stop_mouth_animation()
+            return False  # Unschedule this check
+        # Continue checking
 
     def start_mouth_animation(self):
         self.mouth_anim = Animation(mouth_open=0.8, duration=0.2) + Animation(mouth_open=0.1, duration=0.2)
@@ -325,8 +336,6 @@ class FaceScreen(Widget):
             self.mouth_anim.cancel(self.mouth_widget)
         self.mouth_widget.mouth_open = 0.1
 
-    # Remove local keyboard control methods (on_key_down, on_key_up) entirely
-
     # Restore tap-anywhere functionality to go to the menu screen:
     def on_touch_down(self, touch):
         # If the help button is tapped, let it handle the touch.
@@ -335,6 +344,7 @@ class FaceScreen(Widget):
         # Otherwise, switch to the menu screen.
         self.switch_screen_callback()
         return super().on_touch_down(touch)
+
 
     # -------------- Remote WebSocket for Keyboard Commands --------------
     def start_remote_ws(self):
