@@ -3,32 +3,36 @@
 #include <Adafruit_NeoPixel.h>
 
 // Define L298N Motor Driver Pins
-#define IN1 7
-#define IN2 6
-#define ENA 5
+#define IN1 9
+#define IN2 8
+#define ENA 7
 
 // Define Bumper Switch pins
-#define front_bump 22
-#define back_bump 24
-#define left_bump 26
-#define right_bump 28
+#define front_bump 50
+#define back_bump 44
+#define left_bump 38
+#define right_bump 32
+
+//define ultrasonic pins
+#define trig_pin 5
+#define echo_pin 6
 
 // NeoPixel Configuration
-#define LED_PIN    8   
+#define LED_PIN    11   
 #define LED_COUNT  300  
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // RoboClaw Configuration
-SoftwareSerial softwareSerial(10, 11); 
+SoftwareSerial softwareSerial(12, 13); 
 #define address 0x80
 #define baudrate 38400
 RoboClaw roboclaw(&softwareSerial, 10000);
 
 // Velocity PID coefficients
-#define Kp 0.3
-#define Ki 0.5
+#define Kp 0.1
+#define Ki 0.1
 #define Kd 0.25
-#define qpps 44000
+#define qpps 47711
 
 #define WHEEL_DIAMETER 0.1016
 #define WHEEL_CIRCUMFERENCE (3.14159265358979 * WHEEL_DIAMETER)
@@ -60,7 +64,7 @@ double convertReadingToDistance(int32_t reading) {
 }
 
 double convertReadingToVelocity(int32_t reading) {
-  return (((double)reading / 8192.0) * 60.0 * 2.0 * 3.14159265358979 * 0.1016) / 60.0;
+  return (((double)reading / 8192.0) * 2.0 * 3.14159265358979 * 0.1016/2); // forgot to make it into d = 2r
 }
 
 void sendData(double right_displacement, double left_displacement, double right_velocity, double left_velocity) {
@@ -208,11 +212,7 @@ void loop() {
         Serial.print("Parsed Vtheta: "); Serial.println(Vtheta, 3);
         Serial.print("Parsed lift: "); Serial.println(lift_action, 3);
 
-        if (Vx == 0 && Vy == 0 && Vtheta == 0) {
-          setLEDs(strip.Color(255, 0, 0));
-        } else {
-          setLEDs(strip.Color(0, 255, 0));
-        }
+       
 
         if (lift_action < 0) {
           setLiftSpeed(-lift_action);
@@ -229,10 +229,23 @@ void loop() {
         int leftQpps = constrain(mps_to_qpps(leftMotorSpeed), -qpps, qpps);
         int rightQpps = constrain(mps_to_qpps(rightMotorSpeed), -qpps, qpps);
 
+         if(digitalRead(left_bump) == HIGH){ // If bumper is hit, stop all actuators
+          leftQpps = 0;
+          rightQpps = 0;
+        }
+
+        if (Vx == 0 && Vy == 0 && Vtheta == 0) {
+          setLEDs(strip.Color(255, 0, 0));
+        } else {
+          setLEDs(strip.Color(0, 255, 0));
+        }
+
         roboclaw.SpeedM1(address, -leftQpps);
         roboclaw.SpeedM2(address, rightQpps);
       }
     }
+
+   
 
     while (Serial.available()) Serial.read();
   }
