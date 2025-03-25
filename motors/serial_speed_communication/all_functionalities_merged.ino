@@ -14,8 +14,11 @@
 #define right_bump 32
 
 //define ultrasonic pins
-#define trig_pin 5
-#define echo_pin 6
+#define trigPin 5
+#define echoPin 6
+
+long duration;
+int distance;
 
 // NeoPixel Configuration
 #define LED_PIN    11   
@@ -165,91 +168,112 @@ void setup() {
   pinMode(right_bump, INPUT);
   pinMode(front_bump, INPUT);
   pinMode(back_bump, INPUT);
+
+  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echoPin, INPUT); // Sets the echoPin as an Input
 }
 
 void loop() {
-  sensorValue1=analogRead(SONAR_PIN1);
   Inch1= (sensorValue1*0.497);
   cm1=Inch1*2.54;
 
   displayspeed();
 
-  if (Serial.available()) {
-    String input = Serial.readStringUntil('\n');
-    input.trim();
-    Serial.print("Raw input: ");
-    Serial.println(input);
+  // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+  // Calculating the distance
+  distance = duration * 0.034 / 2;
+  Serial.println(distance);
 
-    int firstSpace = input.indexOf(' ');
-    int secondSpace = input.indexOf(' ', firstSpace + 1);
-    int thirdSpace = input.indexOf(' ', secondSpace + 1);
+   if (distance < 40 || digitalRead(left_bump) == HIGH || digitalRead(right_bump) == HIGH || digitalRead(front_bump) == HIGH || digitalRead(back_bump) == HIGH){
+    roboclaw.SpeedM1(address, 0);
+    roboclaw.SpeedM2(address, 0);
+    setLEDs(strip.Color(255, 0, 0));
+  }
 
-    if (firstSpace == -1 || secondSpace == -1 || thirdSpace == -1) {
-      Serial.println("Error: Not enough spaces in input.");
-      roboclaw.SpeedM1(address, 0);
-      roboclaw.SpeedM2(address, 0);
-      liftStop();
-    } else {
-      String Vx_str = input.substring(0, firstSpace);
-      String Vy_str = input.substring(firstSpace + 1, secondSpace);
-      String Vtheta_str = input.substring(secondSpace + 1, thirdSpace);
-      String lift_str = input.substring(thirdSpace + 1);
-
-      if (!hasThreeDecimalPlaces(Vx_str) || !hasThreeDecimalPlaces(Vy_str) || 
-          !hasThreeDecimalPlaces(Vtheta_str) || !hasThreeDecimalPlaces(lift_str)) {
-        Serial.println("Error: Values must have exactly 3 decimal places.");
+else{
+    if (Serial.available()) {
+      String input = Serial.readStringUntil('\n');
+      input.trim();
+      Serial.print("Raw input: ");
+      Serial.println(input);
+  
+      int firstSpace = input.indexOf(' ');
+      int secondSpace = input.indexOf(' ', firstSpace + 1);
+      int thirdSpace = input.indexOf(' ', secondSpace + 1);
+  
+      if (firstSpace == -1 || secondSpace == -1 || thirdSpace == -1) {
+        Serial.println("Error: Not enough spaces in input.");
         roboclaw.SpeedM1(address, 0);
         roboclaw.SpeedM2(address, 0);
         liftStop();
       } else {
-        float Vx = Vx_str.toFloat();
-        float Vy = Vy_str.toFloat();
-        float Vtheta = Vtheta_str.toFloat();
-        float lift_action = lift_str.toFloat();
-
-        Serial.print("Parsed Vx: "); Serial.println(Vx, 3);
-        Serial.print("Parsed Vy: "); Serial.println(Vy, 3);
-        Serial.print("Parsed Vtheta: "); Serial.println(Vtheta, 3);
-        Serial.print("Parsed lift: "); Serial.println(lift_action, 3);
-
-       
-
-        if (lift_action < 0) {
-          setLiftSpeed(-lift_action);
-          liftDown();
-        } else if (lift_action > 0) {
-          setLiftSpeed(lift_action);
-          liftUp();
-        } else {
+        String Vx_str = input.substring(0, firstSpace);
+        String Vy_str = input.substring(firstSpace + 1, secondSpace);
+        String Vtheta_str = input.substring(secondSpace + 1, thirdSpace);
+        String lift_str = input.substring(thirdSpace + 1);
+  
+        if (!hasThreeDecimalPlaces(Vx_str) || !hasThreeDecimalPlaces(Vy_str) || 
+            !hasThreeDecimalPlaces(Vtheta_str) || !hasThreeDecimalPlaces(lift_str)) {
+          Serial.println("Error: Values must have exactly 3 decimal places.");
+          roboclaw.SpeedM1(address, 0);
+          roboclaw.SpeedM2(address, 0);
           liftStop();
-        }
-
-        tankDrive(Vx, Vtheta, wheel_width, leftMotorSpeed, rightMotorSpeed);
-
-        int leftQpps = constrain(mps_to_qpps(leftMotorSpeed), -qpps, qpps);
-        int rightQpps = constrain(mps_to_qpps(rightMotorSpeed), -qpps, qpps);
-
-        if (Vx == 0 && Vy == 0 && Vtheta == 0) {
-          setLEDs(strip.Color(255, 0, 0));
         } else {
-          setLEDs(strip.Color(0, 255, 0));
+          float Vx = Vx_str.toFloat();
+          float Vy = Vy_str.toFloat();
+          float Vtheta = Vtheta_str.toFloat();
+          float lift_action = lift_str.toFloat();
+  
+          Serial.print("Parsed Vx: "); Serial.println(Vx, 3);
+          Serial.print("Parsed Vy: "); Serial.println(Vy, 3);
+          Serial.print("Parsed Vtheta: "); Serial.println(Vtheta, 3);
+          Serial.print("Parsed lift: "); Serial.println(lift_action, 3);
+         
+          if (lift_action < 0) {
+            setLiftSpeed(-lift_action);
+            liftDown();
+          } else if (lift_action > 0) {
+            setLiftSpeed(lift_action);
+            liftUp();
+          } else {
+            liftStop();
+          }
+  
+          tankDrive(Vx, Vtheta, wheel_width, leftMotorSpeed, rightMotorSpeed);
+  
+          int leftQpps = constrain(mps_to_qpps(leftMotorSpeed), -qpps, qpps);
+          int rightQpps = constrain(mps_to_qpps(rightMotorSpeed), -qpps, qpps);
+
+          if(distance >= 40 && digitalRead(left_bump) == LOW && digitalRead(right_bump) == LOW && digitalRead(front_bump) == LOW && digitalRead(back_bump) == LOW){
+  
+            if (Vx == 0 && Vy == 0 && Vtheta == 0) {
+              setLEDs(strip.Color(255, 0, 0));
+            } else {
+              setLEDs(strip.Color(0, 255, 0));
+            }
+    
+            roboclaw.SpeedM1(address, -leftQpps);
+            roboclaw.SpeedM2(address, rightQpps);
+          }
+          else{
+            roboclaw.SpeedM1(address, 0);
+            roboclaw.SpeedM2(address, 0);
+            setLEDs(strip.Color(255, 0, 0));
+          }
         }
-
-        roboclaw.SpeedM1(address, -leftQpps);
-        roboclaw.SpeedM2(address, rightQpps);
       }
-    }
-
-   
 
     while (Serial.available()) Serial.read();
   }
-
-  if(digitalRead(left_bump) == HIGH){ // If bumper is hit, stop all actuators
-      roboclaw.SpeedM1(address, 0);
-      roboclaw.SpeedM2(address, 0);
-      setLEDs(strip.Color(255, 0, 0));
-  }
+}
 
   delay(50);
 }
