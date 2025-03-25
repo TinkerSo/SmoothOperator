@@ -229,11 +229,6 @@ void loop() {
         int leftQpps = constrain(mps_to_qpps(leftMotorSpeed), -qpps, qpps);
         int rightQpps = constrain(mps_to_qpps(rightMotorSpeed), -qpps, qpps);
 
-         if(digitalRead(left_bump) == HIGH){ // If bumper is hit, stop all actuators
-          leftQpps = 0;
-          rightQpps = 0;
-        }
-
         if (Vx == 0 && Vy == 0 && Vtheta == 0) {
           setLEDs(strip.Color(255, 0, 0));
         } else {
@@ -248,6 +243,12 @@ void loop() {
    
 
     while (Serial.available()) Serial.read();
+  }
+
+  if(digitalRead(left_bump) == HIGH){ // If bumper is hit, stop all actuators
+      roboclaw.SpeedM1(address, 0);
+      roboclaw.SpeedM2(address, 0);
+      setLEDs(strip.Color(255, 0, 0));
   }
 
   delay(50);
