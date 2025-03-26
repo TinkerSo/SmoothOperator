@@ -167,17 +167,15 @@ wss.on('connection', (ws, req) => {
                 console.error(`Invalid movement command: ${vCommand}`);
                 return;
             }
-            const messageToSend = '${vCommand}\n';
-            arduinoPort.write(messageToSend, 'utf8', (err) => {
+            // const messageToSend = `${vCommand}\n`;
+            arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
                 if (err) {
                     console.error(`Error writing to Arduino: ${err}`);
                 } else {
-                    const printable = messageToSend.replace(/\n/g, '\\n');
-                    console.log(`Forwarded movement command to Arduino: ${printable}`);
-
+                    console.log(`Forwarded movement command to Arduino: ${vCommand}`);
                     // Use drain() to ensure that the command is fully sent
                     arduinoPort.drain(() => {
-                        console.log(`Drain complete for movement command: ${printable}`);
+                        console.log(`Drain complete for movement command: ${vCommand}`);
                     });
                 }
             });
