@@ -167,7 +167,7 @@ wss.on('connection', (ws, req) => {
                 console.error(`Invalid movement command: ${vCommand}`);
                 return;
             }
-            const messageToSend = `${vCommand}\n`;
+            const messageToSend = '${vCommand}\n';
             arduinoPort.write(messageToSend, 'utf8', (err) => {
                 if (err) {
                     console.error(`Error writing to Arduino: ${err}`);
