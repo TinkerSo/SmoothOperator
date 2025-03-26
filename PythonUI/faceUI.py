@@ -593,7 +593,7 @@ class ManualControlScreen(Screen):
 
     def create_release_handler(self):
         def handler(instance):
-            Clock.schedule_once(lambda dt: self.send_command('x'), 0.05)
+            Clock.schedule_once(lambda dt: self.send_command('x'), 0.1)
         return handler
 
     def send_command(self, command):
