@@ -66,24 +66,64 @@ function getVCommand(command) {
 }
 
 // API endpoint for ROS commands
+// app.post('/api/ros', (req, res) => {
+//     const data = req.body.trim();
+//     if (!data) {
+//         return res.status(400).send({ error: 'Invalid data format' });
+//     }
+//     console.log(`Received from ROS: ${data}`);
+//     arduinoPort.write(`${data}\n`, 'utf8', (err) => {
+//         if (err) {
+//             console.error(`Error writing to Arduino: ${err}`);
+//             return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
+//         }
+//         // Use drain() to ensure the serial command is fully sent
+//         arduinoPort.drain(() => {
+//             console.log(`Drain complete for ROS command: ${data}`);
+//             res.status(200).send({ message: `ROS command sent successfully` });
+//         });
+//     });
+// });
+
+
+// API endpoint for ROS commands WITH CAP VTHETA TO 0.150
 app.post('/api/ros', (req, res) => {
     const data = req.body.trim();
     if (!data) {
         return res.status(400).send({ error: 'Invalid data format' });
     }
+
+    const parts = data.split(' ');
+    if (parts.length !== 4) {
+        return res.status(400).send({ error: 'Expected 4 float values separated by spaces' });
+    }
+
+    let [Vx, Vy, Vtheta, lift] = parts.map(parseFloat);
+
+    // Cap Vtheta if it's greater than 0.150
+    if (Vtheta > 0.150) {
+        console.log(`Capping Vtheta from ${Vtheta} to 0.150`);
+        Vtheta = 0.150;
+    }
+
+    const cappedCommand = `${Vx.toFixed(3)} ${Vy.toFixed(3)} ${Vtheta.toFixed(3)} ${lift.toFixed(3)}`;
     console.log(`Received from ROS: ${data}`);
-    arduinoPort.write(`${data}\n`, 'utf8', (err) => {
+    console.log(`Sending to Arduino: ${cappedCommand}`);
+
+    arduinoPort.write(`${cappedCommand}\n`, 'utf8', (err) => {
         if (err) {
             console.error(`Error writing to Arduino: ${err}`);
             return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
         }
+
         // Use drain() to ensure the serial command is fully sent
         arduinoPort.drain(() => {
-            console.log(`Drain complete for ROS command: ${data}`);
-            res.status(200).send({ message: `ROS command sent successfully` });
+            console.log(`Drain complete for ROS command: ${cappedCommand}`);
+            res.status(200).send({ message: 'ROS command sent successfully' });
         });
     });
 });
+
 
 // Global variable to store the current passcode
 let currentPasscode = null;
