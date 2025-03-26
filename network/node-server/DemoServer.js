@@ -1,229 +1,218 @@
-const express = require('express');
-const cors = require('cors');
-const WebSocket = require('ws');
-const { SerialPort } = require('serialport');
-const { ReadlineParser } = require('@serialport/parser-readline');
+#include "RoboClaw.h"
+#include <SoftwareSerial.h>
+#include <Adafruit_NeoPixel.h>
 
-const app = express();
-const PORT = 3000;
+// L298N Motor Driver Pins
+#define IN1 9
+#define IN2 8
+#define ENA 7
 
-// UART Configuration
-const ARDUINO_UART_PORT = '/dev/ttyACM0';
-const BAUD_RATE = 9600;
+// Bumper Switch Pins
+#define FRONT_BUMP 50
+#define BACK_BUMP 44
+#define LEFT_BUMP 38
+#define RIGHT_BUMP 32
 
-const arduinoPort = new SerialPort({
-    path: ARDUINO_UART_PORT,
-    baudRate: BAUD_RATE,
-    autoOpen: true,
-    encoding: 'utf8' // Force UTF-8 decoding at the serial port level
-});
+// Ultrasonic Sensor Pins
+#define TRIG_PIN 5
+#define ECHO_PIN 6
 
-// Readline Parser for UART Data
-const parser = arduinoPort.pipe(new ReadlineParser({ delimiter: '\n' }));
+// NeoPixel Configuration
+#define LED_PIN 11
+#define LED_COUNT 300
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-arduinoPort.on('open', () => {
-    console.log(`UART connection established with Arduino on ${ARDUINO_UART_PORT}`);
-});
+// RoboClaw Configuration
+SoftwareSerial softwareSerial(12, 13);
+#define ROBOCLAW_ADDRESS 0x80
+#define BAUDRATE 38400
+RoboClaw roboclaw(&softwareSerial, 10000);
 
-arduinoPort.on('error', (err) => {
-    console.error(`SerialPort Error: ${err.message}`);
-});
+// PID Coefficients
+#define Kp 0.1
+#define Ki 0.1
+#define Kd 0.25
+#define QPPS 47711
 
-// Directly use parsed UTF-8 data from Arduino and broadcast to WebSocket clients
-parser.on('data', (data) => {
-    const utf8Data = data.trim();
-    console.log(`Received from Arduino: ${utf8Data}`);
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(utf8Data);
-        }
-    });
-});
+// Wheel & Encoder Constants
+#define WHEEL_DIAMETER 0.1016
+#define WHEEL_CIRCUMFERENCE (3.14159265358979 * WHEEL_DIAMETER)
+#define COUNTS_PER_REV 8192
 
-// Enable CORS & JSON Parsing Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.text()); 
+// Sonar Sensor Pin
+#define SONAR_PIN1 A0
 
-// Test Route
-app.get('/', (req, res) => {
-    res.send('Hello from the Jetson Nano Node.js Server!');
-});
+// Motion Variables
+int motorSpeed = 2000;
+float leftMotorSpeed, rightMotorSpeed;
+const float WHEEL_WIDTH = 0.5334;
+const float DISTANCE_THRESHOLD = 40.0;
 
-// Function to map commands to vCommand strings (flipped for the physical robot)
-function getVCommand(command) {
-    switch (command) {
-        case 'w': return "-0.100 0.000 0.000 0.000";
-        case 'a': return "0.000 0.000 -0.100 0.000";
-        case 'd': return "0.000 0.000 0.100 0.000";
-        case 's': return "0.100 0.000 0.000 0.000";
-        case 'x': return "0.000 0.000 0.000 0.000";
-        case '+': return "0.000 0.000 0.000 1.000";
-        case '-': return "0.000 0.000 0.000 -1.000";
-        case '=': return "0.000 0.000 0.000 0.000";
-        default: return null;
-    }
+// LED State
+int led_color[3] = {255, 0, 0};
+
+// Function to Set LEDs
+void setLEDs(uint32_t color) {
+  strip.fill(color);
+  strip.show();
 }
 
-// API endpoint for ROS commands
-// app.post('/api/ros', (req, res) => {
-//     const data = req.body.trim();
-//     if (!data) {
-//         return res.status(400).send({ error: 'Invalid data format' });
-//     }
-//     console.log(`Received from ROS: ${data}`);
-//     arduinoPort.write(`${data}\n`, 'utf8', (err) => {
-//         if (err) {
-//             console.error(`Error writing to Arduino: ${err}`);
-//             return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
-//         }
-//         // Use drain() to ensure the serial command is fully sent
-//         arduinoPort.drain(() => {
-//             console.log(`Drain complete for ROS command: ${data}`);
-//             res.status(200).send({ message: `ROS command sent successfully` });
-//         });
-//     });
-// });
+// Convert Encoder Reading to Distance
+double convertReadingToDistance(int32_t reading) {
+  return ((2.0 * 3.14159265358979 * (WHEEL_DIAMETER / 2.0)) / COUNTS_PER_REV) * reading;
+}
 
+// Convert Encoder Reading to Velocity
+double convertReadingToVelocity(int32_t reading) {
+  return ((double)reading / COUNTS_PER_REV) * (3.14159265358979 * WHEEL_DIAMETER);
+}
 
-// API endpoint for ROS commands WITH CAP VTHETA TO 0.150
-app.post('/api/ros', (req, res) => {
-    const data = req.body.trim();
-    if (!data) {
-        return res.status(400).send({ error: 'Invalid data format' });
-    }
+// Send Data Over Serial
+void sendData(double right_displacement, double left_displacement, double right_velocity, double left_velocity) {
+  Serial1.print("Right Displacement: "); Serial1.print(right_displacement, 6);
+  Serial1.print(", Left Displacement: "); Serial1.print(left_displacement, 6);
+  Serial1.print(", Right Velocity: "); Serial1.print(right_velocity, 6);
+  Serial1.print(", Left Velocity: "); Serial1.println(left_velocity, 6);
+}
 
-    const parts = data.split(' ');
-    if (parts.length !== 4) {
-        return res.status(400).send({ error: 'Expected 4 float values separated by spaces' });
-    }
+// Display Speed from Encoders
+void displayspeed() {
+  uint8_t status;
+  bool valid1, valid2, valid3, valid4;
 
-    let [Vx, Vy, Vtheta, lift] = parts.map(parseFloat);
+  int32_t enc_right = roboclaw.ReadEncM1(ROBOCLAW_ADDRESS, &status, &valid1);
+  int32_t speed_right = roboclaw.ReadSpeedM1(ROBOCLAW_ADDRESS, &status, &valid2);
+  int32_t enc_left = roboclaw.ReadEncM2(ROBOCLAW_ADDRESS, &status, &valid3);
+  int32_t speed_left = roboclaw.ReadSpeedM2(ROBOCLAW_ADDRESS, &status, &valid4);
 
-    // Cap Vtheta if it's greater than 0.150
-    if (Vtheta > 0.150) {
-        console.log(`Capping Vtheta from ${Vtheta} to 0.150`);
-        Vtheta = 0.150;
-    }
+  double right_displacement = valid1 ? convertReadingToDistance(enc_right) : 0;
+  double right_velocity = valid2 ? convertReadingToVelocity(speed_right) : 0;
+  double left_displacement = valid3 ? convertReadingToDistance(enc_left) : 0;
+  double left_velocity = valid4 ? convertReadingToVelocity(speed_left) : 0;
 
-    const cappedCommand = `${Vx.toFixed(3)} ${Vy.toFixed(3)} ${Vtheta.toFixed(3)} ${lift.toFixed(3)}`;
-    console.log(`Received from ROS: ${data}`);
-    console.log(`Sending to Arduino: ${cappedCommand}`);
+  if ((valid1 && valid2) || (valid3 && valid4)) {
+    sendData(-right_displacement, left_displacement, -right_velocity, left_velocity);
+  }
+}
 
-    arduinoPort.write(`${cappedCommand}\n`, 'utf8', (err) => {
-        if (err) {
-            console.error(`Error writing to Arduino: ${err}`);
-            return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
-        }
+// Convert Meters Per Second to QPPS
+int mps_to_qpps(double speed_mps) {
+  return (int)((speed_mps / WHEEL_CIRCUMFERENCE) * COUNTS_PER_REV);
+}
 
-        // Use drain() to ensure the serial command is fully sent
-        arduinoPort.drain(() => {
-            console.log(`Drain complete for ROS command: ${cappedCommand}`);
-            res.status(200).send({ message: 'ROS command sent successfully' });
-        });
-    });
-});
+// Tank Drive Calculation
+void tankDrive(float V, float omega, float W, float &leftSpeed, float &rightSpeed) {
+  leftSpeed = V + (omega * W / 2);
+  rightSpeed = V - (omega * W / 2);
+}
 
+// Lift Control Functions
+void liftUp() { digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW); }
+void liftDown() { digitalWrite(IN1, LOW); digitalWrite(IN2, HIGH); }
+void liftStop() { digitalWrite(IN1, LOW); digitalWrite(IN2, LOW); }
+void setLiftSpeed(float speed) { analogWrite(ENA, speed * 255); }
 
-// Global variable to store the current passcode
-let currentPasscode = null;
+// Check if String has Exactly 3 Decimal Places
+bool hasThreeDecimalPlaces(String val) {
+  int dotIndex = val.indexOf('.');
+  return (dotIndex != -1 && (val.length() - dotIndex - 1) == 3);
+}
 
-// Endpoint to receive the passcode from the robot
-app.post('/api/connect', (req, res) => {
-    const { passcode } = req.body;
-    if (!passcode) {
-        return res.status(400).send({ error: 'Passcode is required.' });
-    }
-    currentPasscode = passcode.trim();
-    console.log(`Robot set passcode: ${currentPasscode}`);
-    return res.status(200).send({ message: 'Passcode received.', passcode: currentPasscode });
-});
+void setup() {
+  Serial.begin(9600);
+  Serial1.begin(9600);
+  roboclaw.begin(BAUDRATE);
 
-// Endpoint to authenticate the React Native app's connection attempt
-app.post('/api/authenticate', (req, res) => {
-    const { passcode } = req.body;
-    if (!currentPasscode) {
-        return res.status(400).send({ error: 'Robot has not set a passcode yet.' });
-    }
-    if (!passcode) {
-        return res.status(400).send({ error: 'Passcode is required.' });
-    }
-    if (passcode.trim() === currentPasscode) {
-        console.log(`React Native authenticated successfully with passcode: ${passcode}`);
-        return res.status(200).send({ message: 'Authenticated' });
+  strip.begin();
+  strip.show();
+  strip.setBrightness(80);
+  setLEDs(strip.Color(255, 0, 0));
+
+  pinMode(SONAR_PIN1, INPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(FRONT_BUMP, INPUT);
+  pinMode(BACK_BUMP, INPUT);
+  pinMode(LEFT_BUMP, INPUT);
+  pinMode(RIGHT_BUMP, INPUT);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  Serial.println("Starting...");
+  roboclaw.ResetEncoders(ROBOCLAW_ADDRESS);
+  roboclaw.SetM1VelocityPID(ROBOCLAW_ADDRESS, Kd, Kp, Ki, QPPS);
+  roboclaw.SetM2VelocityPID(ROBOCLAW_ADDRESS, Kd, Kp, Ki, QPPS);
+}
+
+void loop() {
+  displayspeed();
+  
+
+  // Read Sonar Sensor
+//  digitalWrite(TRIG_PIN, LOW);
+//  delayMicroseconds(2);
+//  digitalWrite(TRIG_PIN, HIGH);
+//  delayMicroseconds(10);
+//  digitalWrite(TRIG_PIN, LOW);
+//  int distance = pulseIn(ECHO_PIN, HIGH) * 0.034 / 2;
+//  Serial.println(distance);
+  //Serial1.println(distance);
+
+  // Check for Obstacles
+//  bool obstacleDetected = (distance < DISTANCE_THRESHOLD || 
+//    digitalRead(LEFT_BUMP) || digitalRead(RIGHT_BUMP) || 
+//    digitalRead(FRONT_BUMP) || digitalRead(BACK_BUMP));
+    bool obstacleDetected = (digitalRead(LEFT_BUMP) || digitalRead(RIGHT_BUMP) || 
+    digitalRead(FRONT_BUMP) || digitalRead(BACK_BUMP));
+
+  if (obstacleDetected) {
+    roboclaw.SpeedM1(ROBOCLAW_ADDRESS, 0);
+    roboclaw.SpeedM2(ROBOCLAW_ADDRESS, 0);
+    setLEDs(strip.Color(255, 0, 0));
+  } 
+  else if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    Serial.print("Raw input: "); //debugging line
+    Serial.println(input);//debugging line
+
+    int firstSpace = input.indexOf(' ');
+    int secondSpace = input.indexOf(' ', firstSpace + 1);
+    int thirdSpace = input.indexOf(' ', secondSpace + 1);
+
+    if (firstSpace == -1 || secondSpace == -1 || thirdSpace == -1) {
+      Serial.println("Error: Invalid input format.");
+      liftStop();
     } else {
-        console.log(`React Native failed authentication: ${passcode} does not match ${currentPasscode}`);
-        return res.status(401).send({ error: 'Incorrect passcode' });
-    }
-});
+      String Vx_str = input.substring(0, firstSpace);
+      String Vy_str = input.substring(firstSpace + 1, secondSpace);
+      String Vtheta_str = input.substring(secondSpace + 1, thirdSpace);
+      String lift_str = input.substring(thirdSpace + 1);
 
-// Start HTTP Server
-const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`HTTP Server running on http://0.0.0.0:${PORT}`);
-});
+      if (!hasThreeDecimalPlaces(Vx_str) || !hasThreeDecimalPlaces(Vtheta_str) || !hasThreeDecimalPlaces(lift_str)) {
+        Serial.println("Error: Values must have exactly 3 decimal places.");
+        liftStop();
+        roboclaw.SpeedM1(ROBOCLAW_ADDRESS, 0);
+        roboclaw.SpeedM2(ROBOCLAW_ADDRESS, 0);
+      } else {
+        float Vx = Vx_str.toFloat(), Vy = Vy_str.toFloat(), Vtheta = Vtheta_str.toFloat(), lift_action = lift_str.toFloat();
+        if (lift_action != 0) setLiftSpeed(abs(lift_action)), lift_action > 0 ? liftUp() : liftDown();
+        else liftStop();
 
-// WebSocket Server
-const wss = new WebSocket.Server({ server });
-console.log(`WebSocket server running on ws://0.0.0.0:${PORT}`);
-
-wss.on('connection', (ws, req) => {
-    const clientIP = req.socket.remoteAddress;
-    console.log(`WebSocket Client Connected: ${clientIP}`);
-
-    ws.on('message', (message) => {
-        const trimmedMessage = message.toString().trim();
-        
-        // If the message is "AUTH_SUCCESS", broadcast it.
-        if (trimmedMessage === 'AUTH_SUCCESS') {
-            console.log("Received AUTH_SUCCESS. Broadcasting to all clients...");
-            wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send('AUTH_SUCCESS');
-                }
-            });
-            return; // Do not process further.
-        }
-
-        // Check if it's a movement command
-        if (['w', 'a', 's', 'd', 'x', '+', '=', '-'].includes(trimmedMessage)) {
-            console.log(`Received movement command: ${trimmedMessage}`);
-            // Broadcast the movement command to all clients.
-            wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(trimmedMessage);
-                }
-            });
-            
-            // Map and forward the command to the Arduino.
-            const vCommand = getVCommand(trimmedMessage);
-            if (!vCommand) {
-                console.error(`Invalid movement command: ${trimmedMessage}`);
-                return;
-            }
-            setTimeout(() => {
-                arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
-                    if (err) {
-                        console.error(`Error writing to Arduino: ${err}`);
-                    } else {
-                        console.log(`Forwarded movement command to Arduino (after 50ms delay): ${vCommand}`);
-                        arduinoPort.drain(() => {
-                            console.log(`Drain complete for command: ${vCommand}`);
-                        });
-                    }
-                });
-            }, 50);
-
-
+        tankDrive(Vx, Vtheta, WHEEL_WIDTH, leftMotorSpeed, rightMotorSpeed);
+        roboclaw.SpeedM1(ROBOCLAW_ADDRESS, -mps_to_qpps(leftMotorSpeed));
+        roboclaw.SpeedM2(ROBOCLAW_ADDRESS, mps_to_qpps(rightMotorSpeed));
+        if (Vx != 0.000 || Vy != 0.000 || Vtheta != 0.000)
+        {
+          setLEDs(strip.Color(0, 255, 0));
         } else {
-            console.error(`Received unknown WebSocket message: ${trimmedMessage}`);
+          setLEDs(strip.Color(255, 0, 0));
+
         }
-    });
+      }
+    }
+  }
 
-    ws.on('close', () => {
-        console.log(`WebSocket Client Disconnected: ${clientIP}`);
-    });
-
-    ws.on('error', (err) => {
-        console.error(`WebSocket Error: ${err.message}`);
-    });
-});
+  delay(20);
+}
