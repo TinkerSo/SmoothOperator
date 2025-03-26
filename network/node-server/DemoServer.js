@@ -9,7 +9,7 @@ const PORT = 3000;
 
 // UART Configuration
 const ARDUINO_UART_PORT = '/dev/ttyACM0';
-const BAUD_RATE = 115200;
+const BAUD_RATE = 9600;
 
 const arduinoPort = new SerialPort({
     path: ARDUINO_UART_PORT,
