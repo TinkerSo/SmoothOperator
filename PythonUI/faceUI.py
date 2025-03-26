@@ -10,7 +10,7 @@ import requests
 import pygame
 
 from kivy.app import App
-from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition, SlideTransition, CardTransition
+from kivy.uix.screenmanager import Screen, ScreenManager, FadeTransition, CardTransition
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -23,7 +23,6 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.camera import Camera
 from kivy.graphics.texture import Texture
-from kivy.graphics.context_instructions import Rotate, PushMatrix, PopMatrix
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.utils import get_color_from_hex
 from kivy.animation import Animation
@@ -33,14 +32,14 @@ from kivy.properties import NumericProperty
 
 # Set app theme colors
 THEME_COLORS = {
-    'primary': get_color_from_hex('#03A9F4'),         # Blue
-    'secondary': get_color_from_hex('#2196F3'),         # Light Blue
-    'accent': get_color_from_hex('#FFAC63'),            # Orange
-    'background': get_color_from_hex('#FFFFFF'),        # White
-    'text': get_color_from_hex('#212121'),              # Dark Grey
-    'success': get_color_from_hex('#4CAF50'),           # Green
-    'error': get_color_from_hex('#F44336'),             # Red
-    'disabled': get_color_from_hex('#BDBDBD')           # Light Grey
+    'primary': get_color_from_hex('#03A9F4'),
+    'secondary': get_color_from_hex('#2196F3'),
+    'accent': get_color_from_hex('#FFAC63'),
+    'background': get_color_from_hex('#FFFFFF'),
+    'text': get_color_from_hex('#212121'),
+    'success': get_color_from_hex('#4CAF50'),
+    'error': get_color_from_hex('#F44336'),
+    'disabled': get_color_from_hex('#BDBDBD')
 }
 
 # Set default window size
@@ -48,74 +47,61 @@ Window.size = (800, 600)
 Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
-# SERVER_IP = "128.197.53.43"  # Ethernet
 SERVER_IP = "10.192.31.229"  # BU Guest
-# SERVER_IP = "192.168.1.5"  # Netgear
 SERVER_PORT = 3000
 WS_SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
 HTTP_SERVER_URL = f"http://{SERVER_IP}:{SERVER_PORT}"
 
+# Initialize pygame mixer once
+pygame.mixer.init()
 
 # ------------------ Custom Widgets ------------------
 class RoundedButton(ButtonBehavior, BoxLayout):
-    def __init__(self, text="", icon=None, bg_color=THEME_COLORS['primary'], text_color=(1, 1, 1, 1), 
-                 font_size=50, radius=20, size_hint=(1, 1), height=60, **kwargs):
+    def __init__(self, text="", icon=None, bg_color=THEME_COLORS['primary'], text_color=(1, 1, 1, 1),
+                 font_size=50, radius=10, size_hint=(1, 1), height=60, **kwargs):
+        # Simplify rounded corners: default radius now 10
         super().__init__(size_hint=size_hint, height=height, **kwargs)
         self.bg_color = bg_color
         self.text = text
         self.radius = radius
-        
-        # Create content layout
+        # Use simpler color transition
+        self.press_color = (self.bg_color[0] * 0.9, self.bg_color[1] * 0.9,
+                            self.bg_color[2] * 0.9, self.bg_color[3])
+
+        # Create content layout (static, not recreated on every press)
         content = BoxLayout(orientation='horizontal', padding=10, spacing=10)
-        
-        # Add icon if provided
         if icon:
             icon_img = Image(source=icon, size_hint=(None, None), size=(30, 30))
             content.add_widget(icon_img)
-        
-        # Add text label
-        label = Label(
-            text=text,
-            font_size=font_size,
-            color=text_color,
-            halign='center',
-            valign='middle',
-            size_hint=(1, 1)
-        )
+        label = Label(text=text, font_size=font_size, color=text_color,
+                      halign='center', valign='middle', size_hint=(1, 1))
         content.add_widget(label)
-        
         self.add_widget(content)
-        
-        # Draw rounded background
+
+        # Pre-create canvas instructions for background once
         with self.canvas.before:
-            Color(*bg_color)
+            self.button_color = Color(*bg_color)
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
-        
         self.bind(pos=self.update_rect, size=self.update_rect)
-        
+
     def update_rect(self, *args):
         self.bg_rect.pos = self.pos
         self.bg_rect.size = self.size
-        
+
     def on_press(self):
-        with self.canvas.before:
-            Color(*(self.bg_color[0] * 0.8, self.bg_color[1] * 0.8, self.bg_color[2] * 0.8, self.bg_color[3]))
-            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
-            
+        # Update existing color instruction using press_color
+        self.button_color.rgba = self.press_color
+
     def on_release(self):
-        with self.canvas.before:
-            Color(*self.bg_color)
-            self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
+        self.button_color.rgba = self.bg_color
 
 class HeaderBar(BoxLayout):
     def __init__(self, title="SmoothOperator", icon=None, switch_screen_callback=lambda: None, **kwargs):
-        # Remove the custom property so it isn't passed to the base widget's __init__
         kwargs.pop('switch_screen_callback', None)
         super().__init__(orientation='horizontal', size_hint=(1, None), height=60, **kwargs)
         self.switch_screen_callback = switch_screen_callback
-
         with self.canvas.before:
-            Color(*THEME_COLORS['primary'])
+            self.header_color = Color(*THEME_COLORS['primary'])
             self.rect = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self.update_rect, size=self.update_rect)
 
@@ -124,23 +110,11 @@ class HeaderBar(BoxLayout):
         if icon:
             icon_img = Image(source=icon, size_hint=(None, None), size=(40, 40))
             content.add_widget(icon_img)
-        title_label = Label(
-            text=title,
-            font_size=50,
-            color=(1, 1, 1, 1),
-            halign='left',
-            valign='middle',
-            size_hint=(1, 1),
-            text_size=(None, None)
-        )
+        title_label = Label(text=title, font_size=50, color=(1, 1, 1, 1),
+                            halign='left', valign='middle', size_hint=(1, 1))
         content.add_widget(title_label)
-        back_button = Button(
-            text="Back",
-            size_hint=(None, None),
-            size=(80, 40),
-            background_color=THEME_COLORS['secondary'],
-            font_size=20
-        )
+        back_button = Button(text="Back", size_hint=(None, None), size=(80, 40),
+                             background_color=THEME_COLORS['secondary'], font_size=20)
         back_button.bind(on_press=self.go_back)
         content.add_widget(back_button)
         self.add_widget(content)
@@ -158,90 +132,66 @@ class HeaderBar(BoxLayout):
             app.sm.transition = CardTransition(mode='pop')
             app.sm.current = "menu"
 
-
 class MouthWidget(Widget):
-    mouth_open = NumericProperty(0.1)  # 0.1 = mostly closed; increase to open
-    
+    mouth_open = NumericProperty(0.1)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        
         with self.canvas:
             Color(*THEME_COLORS['primary'])
             self.smile_line = Line(bezier=[], width=4.0)
             self.update_mouth()
         self.bind(pos=self.update_mouth, size=self.update_mouth, mouth_open=self.update_mouth)
-    
+
     def update_mouth(self, *args):
         width, height = self.width, self.height
         bottom_y = self.y
-        
-        # Control how wide the smile is (fraction of widget width)
         smile_width = 0.9
-        
         left_x = self.x + width * (1 - smile_width) / 2
         right_x = self.x + width * (1 + smile_width) / 2
-        
-        # Increase the multiplier to make the smile curve deeper.
-        smile_height = height * self.mouth_open * 10  # Increased from 6 to 10
-        
-        # Define the bezier control points for a downward curve:
+        smile_height = height * self.mouth_open * 10
         points = [
-            left_x, bottom_y,                      # Start point (left)
-            left_x + width/4, bottom_y - smile_height,  # Control point 1
-            right_x - width/4, bottom_y - smile_height, # Control point 2
-            right_x, bottom_y                      # End point (right)
+            left_x, bottom_y,
+            left_x + width/4, bottom_y - smile_height,
+            right_x - width/4, bottom_y - smile_height,
+            right_x, bottom_y
         ]
-        
         self.smile_line.bezier = points
 
-
 # ------------------ FaceScreen ------------------
-pygame.mixer.init()
-
 class FaceScreen(Widget):
     def __init__(self, switch_screen_callback, **kwargs):
         super().__init__(**kwargs)
         self.switch_screen_callback = switch_screen_callback
         self.blinking = False
-
-        # Adjust eye size and spacing relative to the window size
         self.eye_size = (Window.width * 0.25, Window.height * 0.5)
         self.eye_spacing = Window.width * 0.5
-
-        # Eye movement offsets (updated only via remote commands)
         self.eye_offset_x = 0
         self.eye_offset_y = 0
 
-        # Set background
+        # Pre-render background once
         with self.canvas.before:
             Color(*THEME_COLORS['background'])
             self.bg = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self.update_bg, size=self.update_bg)
 
-        # Draw eyes
+        # Create eyes once
         with self.canvas:
             Color(*THEME_COLORS['primary'])
             self.left_eye = Ellipse(size=self.eye_size)
             self.right_eye = Ellipse(size=self.eye_size)
-
         self.update_positions()
         self.bind(pos=self.update_positions, size=self.on_resize)
-        Clock.schedule_interval(self.blink, 3)
+        # Reduced blink frequency: every 5 seconds instead of 3
+        Clock.schedule_interval(self.blink, 5)
 
-        # Add help button
-        self.help_button = RoundedButton(
-            text="?",
-            bg_color=THEME_COLORS['accent'],
-            font_size=30,
-            radius=40,
-            size_hint=(None, None),
-            size=(80, 80)
-        )
+        # Help button (pre-rendered)
+        self.help_button = RoundedButton(text="?", bg_color=THEME_COLORS['accent'],
+                                           font_size=30, radius=10, size_hint=(None, None), size=(80, 80))
         self.help_button.bind(on_press=lambda x: App.get_running_app().switch_to_help())
         self.add_widget(self.help_button)
         self.bind(pos=self.update_help_button_position, size=self.update_help_button_position)
 
-        # Add mouth widget
+        # Mouth widget
         self.mouth_widget = MouthWidget(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
         self.add_widget(self.mouth_widget)
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
@@ -249,7 +199,7 @@ class FaceScreen(Widget):
         # Schedule random audio announcements
         self.schedule_random_audio()
 
-        # Start remote WebSocket to receive keyboard commands from Node.js (from React Native)
+        # Start remote WebSocket for keyboard commands
         self.start_remote_ws()
 
     def update_help_button_position(self, *args):
@@ -268,10 +218,8 @@ class FaceScreen(Widget):
         self.right_eye.pos = (right_x, right_y)
 
     def update_mouth_position(self, *args):
-        self.mouth_widget.pos = (
-            self.center_x - self.mouth_widget.width / 2 + self.eye_offset_x,
-            self.center_y - self.eye_size[1] / 2 + self.eye_offset_y - 20
-        )
+        self.mouth_widget.pos = (self.center_x - self.mouth_widget.width / 2 + self.eye_offset_x,
+                                 self.center_y - self.eye_size[1] / 2 + self.eye_offset_y - 20)
 
     def on_resize(self, *args):
         self.eye_size = (Window.width * 0.25, Window.height * 0.5)
@@ -300,7 +248,7 @@ class FaceScreen(Widget):
         print("Playing audio NOW")
         audio_files = [
             "PythonUI/audio/Hi_Im_SmoothOperator.mp3",
-            "PythonUI/audio/BEEPBEEP.mp3",
+            "PythonUI/audio/BEEPBEEP.mp3"
         ]
         chosen_audio = random.choice(audio_files)
         self.play_audio(chosen_audio)
@@ -309,13 +257,11 @@ class FaceScreen(Widget):
     def play_audio(self, file_path):
         print("Playing audio with pygame...")
         try:
-            # Stop any currently playing audio
             if pygame.mixer.music.get_busy():
                 pygame.mixer.music.stop()
             pygame.mixer.music.load(file_path)
             pygame.mixer.music.play()
             self.start_mouth_animation()
-            # Check periodically if the audio has finished playing
             Clock.schedule_interval(self.check_audio_finished, 0.1)
         except Exception as e:
             print("Unable to play audio file:", file_path, "error:", e)
@@ -323,11 +269,11 @@ class FaceScreen(Widget):
     def check_audio_finished(self, dt):
         if not pygame.mixer.music.get_busy():
             self.stop_mouth_animation()
-            return False  # Unschedule this check
-        # Continue checking
+            return False
 
     def start_mouth_animation(self):
-        self.mouth_anim = Animation(mouth_open=0.8, duration=0.2) + Animation(mouth_open=0.1, duration=0.2)
+        # Reduced animation complexity: slower, less extreme
+        self.mouth_anim = Animation(mouth_open=0.6, duration=0.3) + Animation(mouth_open=0.1, duration=0.3)
         self.mouth_anim.repeat = True
         self.mouth_anim.start(self.mouth_widget)
 
@@ -336,27 +282,21 @@ class FaceScreen(Widget):
             self.mouth_anim.cancel(self.mouth_widget)
         self.mouth_widget.mouth_open = 0.1
 
-    # Restore tap-anywhere functionality to go to the menu screen:
     def on_touch_down(self, touch):
-        # If the help button is tapped, let it handle the touch.
         if self.help_button.collide_point(*touch.pos):
             return super().on_touch_down(touch)
-        # Otherwise, switch to the menu screen.
         self.switch_screen_callback()
         return super().on_touch_down(touch)
 
-
-    # -------------- Remote WebSocket for Keyboard Commands --------------
     def start_remote_ws(self):
-        # WS_SERVER = "ws://128.197.53.43:3000"  # Update with your server address
         WS_SERVER = WS_SERVER_URL
-
         self.remote_ws = websocket.WebSocketApp(
             WS_SERVER,
             on_message=self.on_remote_message,
             on_error=self.on_remote_error,
             on_close=self.on_remote_close,
-            on_open=self.on_remote_open
+            on_open=self.on_remote_open,
+            keep_running=True
         )
         threading.Thread(target=self.remote_ws.run_forever, daemon=True).start()
 
@@ -400,55 +340,34 @@ class FaceScreen(Widget):
         self.update_positions()
         self.update_mouth_position()
 
-
 # ------------------ ConnectScreen ------------------
-
 class ConnectScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.main_layout = FloatLayout()
-        
-        # Add a header (using a dummy callback)
         header = HeaderBar(switch_screen_callback=lambda: None, title="Connect to App")
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
-        
-        # Generate a random 4-digit passcode
         self.passcode = "{:04d}".format(random.randint(0, 9999))
-        
         instructions = (
             "[b]Connect to App[/b]\n\n"
             "Type the following 4-digit passcode in the app to connect to your Smooth Operator machine:\n\n"
             f"[b]{self.passcode}[/b]\n\n"
             "If you need assistance, please contact support."
         )
-        
-        instructions_label = Label(
-            text=instructions,
-            markup=True,
-            font_size=40,
-            color=THEME_COLORS['text'],
-            halign='center',
-            valign='middle',
-            pos_hint={'center_x': 0.5, 'center_y': 0.5},
-            size_hint=(0.8, 0.6)
-        )
+        instructions_label = Label(text=instructions, markup=True, font_size=40,
+                                   color=THEME_COLORS['text'], halign='center', valign='middle',
+                                   pos_hint={'center_x': 0.5, 'center_y': 0.5}, size_hint=(0.8, 0.6))
         instructions_label.bind(size=instructions_label.setter('text_size'))
         self.main_layout.add_widget(instructions_label)
-        
         self.add_widget(self.main_layout)
-        
-        # Send the passcode to the Node.js server via HTTP POST
         self.send_passcode_to_server()
-        # Start a WebSocket connection to listen for AUTH_SUCCESS messages
         self.start_ws()
-    
+
     def send_passcode_to_server(self):
         def post_passcode():
             try:
-                # url = "http://128.197.53.43:3000/api/connect"  # Update to your server address
                 url = f"{HTTP_SERVER_URL}/api/connect"
-
                 payload = {"passcode": self.passcode}
                 headers = {"Content-Type": "application/json"}
                 response = requests.post(url, json=payload, headers=headers, timeout=5)
@@ -456,61 +375,52 @@ class ConnectScreen(Screen):
             except Exception as e:
                 print("Error sending passcode:", e)
         threading.Thread(target=post_passcode, daemon=True).start()
-    
+
     def start_ws(self):
-        WS_SERVER = WS_SERVER_URL  # Update to your server address
+        WS_SERVER = WS_SERVER_URL
         self.ws = websocket.WebSocketApp(
             WS_SERVER,
             on_message=self.on_ws_message,
             on_error=self.on_ws_error,
             on_close=self.on_ws_close,
-            on_open=self.on_ws_open
+            on_open=self.on_ws_open,
+            keep_running=True
         )
         threading.Thread(target=self.ws.run_forever, daemon=True).start()
-    
+
     def on_ws_message(self, ws, message):
         print("ConnectScreen received WebSocket message:", message)
         if message.strip() == "AUTH_SUCCESS":
             Clock.schedule_once(lambda dt: self.on_auth_success(), 0)
-    
+
     def on_ws_error(self, ws, error):
         print("ConnectScreen WebSocket error:", error)
-    
+
     def on_ws_close(self, ws):
         print("ConnectScreen WebSocket closed")
-    
+
     def on_ws_open(self, ws):
         print("ConnectScreen WebSocket opened")
-    
+
     def on_auth_success(self):
-        # Update the UI to show a success message and a button
         self.main_layout.clear_widgets()
         header = HeaderBar(switch_screen_callback=lambda: None, title="Connection Success!")
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
-        success_label = Label(
-            text="Connection Success Message!",
-            font_size=40,
-            color=THEME_COLORS['success'],
-            pos_hint={'center_x': 0.5, 'center_y': 0.6}
-        )
+        success_label = Label(text="Connection Success Message!", font_size=40,
+                              color=THEME_COLORS['success'], pos_hint={'center_x': 0.5, 'center_y': 0.6})
         self.main_layout.add_widget(success_label)
-        return_button = RoundedButton(
-            text="Return to SmoothOperator Face",
-            size_hint=(0.5, 0.2),
-            pos_hint={'center_x': 0.5, 'center_y': 0.3}
-        )
+        return_button = RoundedButton(text="Return to SmoothOperator Face", size_hint=(0.5, 0.2),
+                                      pos_hint={'center_x': 0.5, 'center_y': 0.3})
         return_button.bind(on_release=self.return_to_face)
         self.main_layout.add_widget(return_button)
-    
+
     def return_to_face(self, instance):
         app = App.get_running_app()
         app.sm.transition = CardTransition(mode='pop')
         app.sm.current = "face"
 
-
 # ------------------ MenuScreen ------------------
-
 class MenuScreen(FloatLayout):
     def __init__(self, switch_to_manual, switch_to_qr, switch_to_help, switch_to_connect, switch_to_load_luggage, **kwargs):
         super().__init__(**kwargs)
@@ -519,7 +429,6 @@ class MenuScreen(FloatLayout):
         self.switch_to_help = switch_to_help
         self.switch_to_connect = switch_to_connect
         self.switch_to_load_luggage = switch_to_load_luggage
-
         with self.canvas.before:
             Color(*THEME_COLORS['background'])
             self.bg = Rectangle(pos=self.pos, size=self.size)
@@ -528,79 +437,36 @@ class MenuScreen(FloatLayout):
 
     def build_ui(self):
         self.clear_widgets()
-
         header = HeaderBar(switch_screen_callback=lambda: None, title="Menu")
         header.pos_hint = {'top': 1}
         self.add_widget(header)
-
-        button_layout = BoxLayout(
-            orientation='vertical',
-            spacing=20,
-            padding=[50, 50],
-            size_hint=(0.8, 0.7),
-            pos_hint={'center_x': 0.5, 'center_y': 0.45}
-        )
-
-        load_luggage_btn = RoundedButton(
-            text="Load Luggage",
-            bg_color=THEME_COLORS['success'],
-            font_size=50,
-            height=80
-        )
+        button_layout = BoxLayout(orientation='vertical', spacing=20, padding=[50, 50],
+                                  size_hint=(0.8, 0.7), pos_hint={'center_x': 0.5, 'center_y': 0.45})
+        load_luggage_btn = RoundedButton(text="Load Luggage", bg_color=THEME_COLORS['success'],
+                                          font_size=50, height=80)
         load_luggage_btn.bind(on_press=lambda x: self.switch_to_load_luggage())
         button_layout.add_widget(load_luggage_btn)
-
-        manual_btn = RoundedButton(
-            text="Manual Robot Control",
-            bg_color=THEME_COLORS['primary'],
-            font_size=50,
-            height=80
-        )
+        manual_btn = RoundedButton(text="Manual Robot Control", bg_color=THEME_COLORS['primary'],
+                                   font_size=50, height=80)
         manual_btn.bind(on_press=lambda x: self.switch_to_manual())
         button_layout.add_widget(manual_btn)
-
-        qr_btn = RoundedButton(
-            text="Scan Boarding Pass",
-            bg_color=THEME_COLORS['primary'],
-            font_size=50,
-            height=80
-        )
+        qr_btn = RoundedButton(text="Scan Boarding Pass", bg_color=THEME_COLORS['primary'],
+                               font_size=50, height=80)
         qr_btn.bind(on_press=lambda x: self.switch_to_qr())
         button_layout.add_widget(qr_btn)
-        
-        connect_btn = RoundedButton(
-            text="Connect to App",
-            bg_color=THEME_COLORS['primary'],
-            font_size=50,
-            height=80
-        )
+        connect_btn = RoundedButton(text="Connect to App", bg_color=THEME_COLORS['primary'],
+                                    font_size=50, height=80)
         connect_btn.bind(on_press=lambda x: self.switch_to_connect())
         button_layout.add_widget(connect_btn)
-        
-        help_btn = RoundedButton(
-            text="Help",
-            bg_color=THEME_COLORS['accent'],
-            font_size=50,
-            height=80
-        )
-
-        self.help_button = RoundedButton(
-            text="?",
-            bg_color=THEME_COLORS['accent'],
-            font_size=30,
-            radius=40,
-            size_hint=(None, None),
-            size=(80, 80)
-        )
+        help_btn = RoundedButton(text="Help", bg_color=THEME_COLORS['accent'],
+                                 font_size=50, height=80)
         help_btn.bind(on_press=lambda x: self.switch_to_help())
         button_layout.add_widget(help_btn)
-
         self.add_widget(button_layout)
 
     def update_bg(self, *args):
         self.bg.pos = self.pos
         self.bg.size = self.size
-
 
 # ------------------ WebSocket Client ------------------
 class WebSocketClient:
@@ -645,7 +511,8 @@ class WebSocketClient:
             on_open=on_open,
             on_message=on_message,
             on_error=on_error,
-            on_close=on_close
+            on_close=on_close,
+            keep_running=True
         )
         wst = threading.Thread(target=self.ws.run_forever, daemon=True)
         wst.start()
@@ -668,7 +535,6 @@ class WebSocketClient:
         else:
             print("WebSocket is not connected.")
             return False
-
 
 # ------------------ ManualControlScreen ------------------
 class ManualControlScreen(Screen):
@@ -694,7 +560,8 @@ class ManualControlScreen(Screen):
         self.control_grid.size_hint = (0.9, 0.6)
 
     def create_control_grid(self):
-        grid = GridLayout(rows=3, cols=3, spacing=15, padding=20, size_hint=(0.9, 0.6), pos_hint={'center_x': 0.5, 'center_y': 0.45})
+        grid = GridLayout(rows=3, cols=3, spacing=15, padding=20, size_hint=(0.9, 0.6),
+                          pos_hint={'center_x': 0.5, 'center_y': 0.45})
         button_map = {
             "Forward": ("w", THEME_COLORS['primary']),
             "Left": ("a", THEME_COLORS['primary']),
@@ -713,7 +580,7 @@ class ManualControlScreen(Screen):
                     command, color = button_map[label]
                     btn = RoundedButton(text=label, bg_color=color, font_size=50, height=80)
                     btn.bind(on_press=self.create_press_handler(command))
-                    btn.bind(on_release=self.create_release_handler())  
+                    btn.bind(on_release=self.create_release_handler())
                     grid.add_widget(btn)
                 else:
                     grid.add_widget(Widget(size_hint=(1, 1)))
@@ -728,7 +595,6 @@ class ManualControlScreen(Screen):
     def send_command(self, command):
         return self.ws_client.send(command) if self.ws_client else False
 
-
 # ------------------ LoadLuggageScreen ------------------
 class LoadLuggageScreen(Screen):
     def __init__(self, **kwargs):
@@ -741,20 +607,12 @@ class LoadLuggageScreen(Screen):
         header = HeaderBar(title="Load Luggage")
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
-        # Create a WebSocket client to send luggage commands
         self.server_ip = WS_SERVER_URL
         self.ws_client = WebSocketClient(self.server_ip)
-        # Create control layout with two buttons: Up and Down
-        control_layout = BoxLayout(
-            orientation='vertical',
-            spacing=20,
-            padding=[50, 50],
-            size_hint=(0.4, 0.4),
-            pos_hint={'center_x': 0.5, 'center_y': 0.5}
-        )
+        control_layout = BoxLayout(orientation='vertical', spacing=20, padding=[50, 50],
+                                    size_hint=(0.4, 0.4), pos_hint={'center_x': 0.5, 'center_y': 0.5})
         up_btn = RoundedButton(text="Up", bg_color=THEME_COLORS['primary'], font_size=50, height=80)
         down_btn = RoundedButton(text="Down", bg_color=THEME_COLORS['primary'], font_size=50, height=80)
-        # Bind on_press to send the appropriate command and on_release to send a stop command
         up_btn.bind(on_press=lambda instance: self.send_command("+"))
         up_btn.bind(on_release=lambda instance: self.send_command("="))
         down_btn.bind(on_press=lambda instance: self.send_command("-"))
@@ -763,18 +621,18 @@ class LoadLuggageScreen(Screen):
         control_layout.add_widget(down_btn)
         self.main_layout.add_widget(control_layout)
         self.add_widget(self.main_layout)
-    
+
     def update_layout(self, *args):
         self.bg.pos = self.main_layout.pos
         self.bg.size = self.main_layout.size
-    
+
     def send_command(self, command):
         if self.ws_client:
             return self.ws_client.send(command)
         return False
 
-
 # ------------------ QR Code Reader Screen ------------------
+
 class QRScreen(Screen):
     def __init__(self, switch_to_postscan, **kwargs):
         super().__init__(**kwargs)
@@ -795,7 +653,7 @@ class QRScreen(Screen):
             Color(*THEME_COLORS['primary'])
             self.camera_border_rect = Rectangle(pos=camera_border.pos, size=camera_border.size)
         camera_border.bind(pos=self.update_camera_border, size=self.update_camera_border)
-        self.camera = Camera(play=True, resolution=(1280, 720))
+        self.camera = Camera(play=True, resolution=(640, 640))
         self.camera.allow_stretch = True
         self.image_display = Image()
         camera_border.add_widget(self.image_display)
@@ -823,7 +681,7 @@ class QRScreen(Screen):
         result_card.add_widget(self.result_label)
         main_layout.add_widget(result_card)
         self.add_widget(main_layout)
-        Clock.schedule_interval(self.update_texture, 1/30)
+        Clock.schedule_interval(self.update_texture, 1/15)
 
     def on_pre_enter(self):
         self.qr_scanned = False
@@ -837,7 +695,6 @@ class QRScreen(Screen):
         self.result_card_rect.size = instance.size
         self.result_card_border.rectangle = (instance.x, instance.y, instance.width, instance.height)
 
-
     def update_texture(self, dt):
         if not self.camera.texture or self.qr_scanned:
             return
@@ -849,33 +706,8 @@ class QRScreen(Screen):
         # Rotate the frame by 180 degrees
         rotated_frame = cv2.rotate(frame, cv2.ROTATE_180)
         
-        # Make a copy of the rotated frame to draw on
+        # Make a copy of the rotated frame (without drawing guidelines)
         processed_frame = rotated_frame.copy()
-        
-        # Calculate parameters for drawing the QR scanning guide
-        center_x, center_y = w // 2, h // 2
-        qr_size = min(w, h) // 2
-        corner_size = 30
-        line_thickness = 2
-        corner_color = (0, 191, 255, 255)
-        
-        # Draw guide lines for the QR scanning area
-        cv2.line(processed_frame, (center_x - qr_size, center_y - qr_size),
-                (center_x - qr_size + corner_size, center_y - qr_size), corner_color, line_thickness)
-        cv2.line(processed_frame, (center_x - qr_size, center_y - qr_size),
-                (center_x - qr_size, center_y - qr_size + corner_size), corner_color, line_thickness)
-        cv2.line(processed_frame, (center_x + qr_size, center_y - qr_size),
-                (center_x + qr_size - corner_size, center_y - qr_size), corner_color, line_thickness)
-        cv2.line(processed_frame, (center_x + qr_size, center_y - qr_size),
-                (center_x + qr_size, center_y - qr_size + corner_size), corner_color, line_thickness)
-        cv2.line(processed_frame, (center_x - qr_size, center_y + qr_size),
-                (center_x - qr_size + corner_size, center_y + qr_size), corner_color, line_thickness)
-        cv2.line(processed_frame, (center_x - qr_size, center_y + qr_size),
-                (center_x - qr_size, center_y + qr_size - corner_size), corner_color, line_thickness)
-        cv2.line(processed_frame, (center_x + qr_size, center_y + qr_size),
-                (center_x + qr_size - corner_size, center_y + qr_size), corner_color, line_thickness)
-        cv2.line(processed_frame, (center_x + qr_size, center_y + qr_size),
-                (center_x + qr_size, center_y + qr_size - corner_size), corner_color, line_thickness)
         
         # Attempt to decode the QR code from the processed frame
         results = decode(processed_frame)
@@ -906,8 +738,6 @@ class QRScreen(Screen):
         new_texture = Texture.create(size=(w, h))
         new_texture.blit_buffer(processed_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
         self.image_display.texture = new_texture
-
-
 
     def flash_green_and_transition(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate):
         self.qr_scanned = True
@@ -942,6 +772,7 @@ class QRScreen(Screen):
             print("PostScanScreen not found")
 
 
+
 # ------------------ PostScanScreen ------------------
 class PostScanScreen(Screen):
     def __init__(self, **kwargs):
@@ -950,22 +781,12 @@ class PostScanScreen(Screen):
         header = HeaderBar(title="Scan Complete")
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
-        self.details_label = Label(
-            text="",
-            markup=True,
-            font_size=50,
-            color=THEME_COLORS['text'],
-            halign='center',
-            valign='middle',
-            pos_hint={'center_x': 0.5, 'center_y': 0.65}
-        )
+        self.details_label = Label(text="", markup=True, font_size=50,
+                                   color=THEME_COLORS['text'], halign='center', valign='middle',
+                                   pos_hint={'center_x': 0.5, 'center_y': 0.65})
         self.main_layout.add_widget(self.details_label)
-        button_layout = BoxLayout(
-            orientation='horizontal',
-            size_hint=(0.5, 0.1),
-            pos_hint={'center_x': 0.5, 'y': 0.3},
-            spacing=20
-        )
+        button_layout = BoxLayout(orientation='horizontal', size_hint=(0.5, 0.1),
+                                  pos_hint={'center_x': 0.5, 'y': 0.3}, spacing=20)
         yes_button = RoundedButton(text="Yes", bg_color=THEME_COLORS['success'], font_size=50)
         no_button = RoundedButton(text="No", bg_color=THEME_COLORS['error'], font_size=50)
         yes_button.bind(on_press=self.on_yes)
@@ -989,7 +810,6 @@ class PostScanScreen(Screen):
         app.sm.transition = CardTransition(mode='pop')
         app.sm.current = "menu"
 
-
 # ------------------ HelpScreen ------------------
 class HelpScreen(Screen):
     def __init__(self, **kwargs):
@@ -998,7 +818,6 @@ class HelpScreen(Screen):
         header = HeaderBar(title="Help")
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
-        
         instructions = (
             "[b]How to Use SmoothOperator:[/b]\n\n"
             "1. From the [b]Face[/b] screen, tap the screen to enter the menu.\n"
@@ -1008,28 +827,18 @@ class HelpScreen(Screen):
             "5. Use the [b]Back[/b] button in the header to navigate to the previous screen.\n\n"
             "For additional support, please contact our support team."
         )
-        help_label = Label(
-            text=instructions,
-            markup=True,
-            font_size=40,
-            color=THEME_COLORS['text'],
-            halign='center',
-            valign='middle',
-            pos_hint={'center_x': 0.5, 'center_y': 0.5},
-            size_hint=(0.8, 0.6)
-        )
+        help_label = Label(text=instructions, markup=True, font_size=40,
+                           color=THEME_COLORS['text'], halign='center', valign='middle',
+                           pos_hint={'center_x': 0.5, 'center_y': 0.5}, size_hint=(0.8, 0.6))
         help_label.bind(size=help_label.setter('text_size'))
         self.main_layout.add_widget(help_label)
         self.add_widget(self.main_layout)
 
-
 # ------------------ Main Application ------------------
-
 class SmoothOperatorApp(App):
     def build(self):
         self.title = "SmoothOperator"
         self.sm = ScreenManager(transition=FadeTransition(duration=0.5))
-        
         face_screen = Screen(name="face")
         menu_screen = Screen(name="menu")
         manual_screen = ManualControlScreen(name="manual")
@@ -1042,13 +851,11 @@ class SmoothOperatorApp(App):
         face_widget = FaceScreen(self.switch_to_menu)
         face_screen.add_widget(face_widget)
 
-        menu_widget = MenuScreen(
-            switch_to_manual=self.switch_to_manual, 
-            switch_to_qr=self.switch_to_qr, 
-            switch_to_help=self.switch_to_help, 
-            switch_to_connect=self.switch_to_connect,
-            switch_to_load_luggage=self.switch_to_load_luggage
-        )
+        menu_widget = MenuScreen(switch_to_manual=self.switch_to_manual,
+                                 switch_to_qr=self.switch_to_qr,
+                                 switch_to_help=self.switch_to_help,
+                                 switch_to_connect=self.switch_to_connect,
+                                 switch_to_load_luggage=self.switch_to_load_luggage)
         menu_screen.add_widget(menu_widget)
 
         self.sm.add_widget(face_screen)
@@ -1074,19 +881,19 @@ class SmoothOperatorApp(App):
     def switch_to_qr(self):
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "qr"
-        
+
     def switch_to_help(self):
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "help"
-        
+
     def switch_to_connect(self):
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "connect"
-        
+
     def switch_to_load_luggage(self):
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "load_luggage"
-        
+
     def switch_to_postscan(self, message=None):
         if message:
             postscan_screen = self.sm.get_screen("postscan")
@@ -1096,3 +903,4 @@ class SmoothOperatorApp(App):
 
 if __name__ == '__main__':
     SmoothOperatorApp().run()
+
