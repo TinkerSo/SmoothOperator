@@ -638,10 +638,13 @@ class QRScreen(Screen):
         super().__init__(**kwargs)
         self.switch_to_postscan = switch_to_postscan
         self.qr_scanned = False
+        self.capture = None  # Will hold the OpenCV VideoCapture
+        
         main_layout = FloatLayout()
         header = HeaderBar(title="Boarding Pass Scanner")
         header.pos_hint = {'top': 1}
         main_layout.add_widget(header)
+        
         camera_container = BoxLayout(
             orientation='vertical',
             size_hint=(0.8, 0.6),
@@ -653,12 +656,13 @@ class QRScreen(Screen):
             Color(*THEME_COLORS['primary'])
             self.camera_border_rect = Rectangle(pos=camera_border.pos, size=camera_border.size)
         camera_border.bind(pos=self.update_camera_border, size=self.update_camera_border)
-        self.camera = Camera(play=True, resolution=(640, 640))
-        self.camera.allow_stretch = True
+        
+        # Instead of using Kivy's Camera, we just create an Image widget.
         self.image_display = Image()
         camera_border.add_widget(self.image_display)
         camera_container.add_widget(camera_border)
         main_layout.add_widget(camera_container)
+        
         result_card = BoxLayout(
             orientation='vertical',
             size_hint=(0.8, 0.15),
@@ -669,7 +673,10 @@ class QRScreen(Screen):
             Color(*THEME_COLORS['background'])
             self.result_card_rect = Rectangle(pos=result_card.pos, size=result_card.size)
             Color(*THEME_COLORS['primary'])
-            self.result_card_border = Line(rectangle=(result_card.x, result_card.y, result_card.width, result_card.height), width=2)
+            self.result_card_border = Line(
+                rectangle=(result_card.x, result_card.y, result_card.width, result_card.height),
+                width=2
+            )
         result_card.bind(pos=self.update_result_card, size=self.update_result_card)
         self.result_label = Label(
             text="Please Scan Your Boarding Pass",
@@ -680,36 +687,50 @@ class QRScreen(Screen):
         )
         result_card.add_widget(self.result_label)
         main_layout.add_widget(result_card)
+        
         self.add_widget(main_layout)
-        Clock.schedule_interval(self.update_texture, 1/15)
+        # Update texture at 30 FPS
+        Clock.schedule_interval(self.update_texture, 1/30)
 
     def on_pre_enter(self):
         self.qr_scanned = False
+        # Open the webcam only when entering the QRScreen.
+        self.capture = cv2.VideoCapture(0)
+        # Optionally set resolution; here we use 640x640.
+        self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 640)
+
+    def on_leave(self, *args):
+        # Release the webcam when leaving to free resources.
+        if self.capture is not None:
+            self.capture.release()
+            self.capture = None
+        if hasattr(self, 'qr_texture'):
+            del self.qr_texture
 
     def update_camera_border(self, instance, value):
         self.camera_border_rect.pos = instance.pos
         self.camera_border_rect.size = instance.size
-        
+
     def update_result_card(self, instance, value):
         self.result_card_rect.pos = instance.pos
         self.result_card_rect.size = instance.size
         self.result_card_border.rectangle = (instance.x, instance.y, instance.width, instance.height)
 
     def update_texture(self, dt):
-        if not self.camera.texture or self.qr_scanned:
+        # If no capture is available or a QR was already scanned, do nothing.
+        if self.capture is None or self.qr_scanned:
             return
-        texture = self.camera.texture
-        w, h = texture.size
-        pixels = texture.pixels
-        frame = np.frombuffer(pixels, np.uint8).reshape(h, w, 4)
+        ret, frame = self.capture.read()
+        if not ret:
+            return
         
-        # Rotate the frame by 180 degrees
+        # Rotate the frame by 180 degrees (if needed).
         rotated_frame = cv2.rotate(frame, cv2.ROTATE_180)
+        # Convert the frame from BGR to RGBA for Kivy.
+        processed_frame = cv2.cvtColor(rotated_frame, cv2.COLOR_BGR2RGBA)
         
-        # Make a copy of the rotated frame (without drawing guidelines)
-        processed_frame = rotated_frame.copy()
-        
-        # Attempt to decode the QR code from the processed frame
+        # Attempt to decode the QR code from the processed frame.
         results = decode(processed_frame)
         if results and not self.qr_scanned:
             obj = results[0]
@@ -734,7 +755,8 @@ class QRScreen(Screen):
             self.result_label.text = "Please Scan Your Boarding Pass"
             self.result_label.color = THEME_COLORS['text']
         
-        # Create a new texture with the original dimensions and update the image display
+        # Create a texture from the processed frame.
+        h, w, _ = processed_frame.shape
         new_texture = Texture.create(size=(w, h))
         new_texture.blit_buffer(processed_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
         self.image_display.texture = new_texture
@@ -746,8 +768,10 @@ class QRScreen(Screen):
         with flash.canvas:
             Color(0, 1, 0, 1)
             flash_rect = Rectangle(pos=self.pos, size=self.size)
-        flash.bind(pos=lambda inst, val: setattr(flash_rect, 'pos', val),
-                   size=lambda inst, val: setattr(flash_rect, 'size', val))
+        flash.bind(
+            pos=lambda inst, val: setattr(flash_rect, 'pos', val),
+            size=lambda inst, val: setattr(flash_rect, 'size', val)
+        )
         self.add_widget(flash)
         anim = Animation(opacity=0, duration=0.5)
         anim.start(flash)
