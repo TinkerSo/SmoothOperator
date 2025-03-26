@@ -65,6 +65,13 @@ function getVCommand(command) {
     }
 }
 
+function isValidVCommand(str) {
+    // Match exactly 4 floats separated by commas
+    const floatRegex = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
+    return floatRegex.test(str);
+}
+
+
 // API endpoint for ROS commands
 app.post('/api/ros', (req, res) => {
     const data = req.body.trim();
@@ -156,18 +163,21 @@ wss.on('connection', (ws, req) => {
             
             // Map and forward the command to the Arduino.
             const vCommand = getVCommand(trimmedMessage);
-            if (!vCommand) {
-                console.error(`Invalid movement command: ${trimmedMessage}`);
+            if (!vCommand || !isValidVCommand(vCommand)) {
+                console.error(`Invalid movement command: ${vCommand}`);
                 return;
             }
-            arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
+            const messageToSend = `${vCommand}\n`;
+            arduinoPort.write(messageToSend, 'utf8', (err) => {
                 if (err) {
                     console.error(`Error writing to Arduino: ${err}`);
                 } else {
-                    console.log(`Forwarded movement command to Arduino: ${vCommand}`);
+                    const printable = messageToSend.replace(/\n/g, '\\n');
+                    console.log(`Forwarded movement command to Arduino: ${printable}`);
+
                     // Use drain() to ensure that the command is fully sent
                     arduinoPort.drain(() => {
-                        console.log(`Drain complete for movement command: ${vCommand}`);
+                        console.log(`Drain complete for movement command: ${printable}`);
                     });
                 }
             });
