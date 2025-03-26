@@ -53,14 +53,14 @@ app.get('/', (req, res) => {
 // Function to map commands to vCommand strings (flipped for the physical robot)
 function getVCommand(command) {
     switch (command) {
-        case 'w': return "-0.100,0.000,0.000,0.000";
-        case 'a': return "0.000,0.000,0.100,0.000";
-        case 'd': return "0.000,0.000,-0.100,0.000";
-        case 's': return "0.100,0.000,0.000,0.000";
-        case 'x': return "0.000,0.000,0.000,0.000";
-        case '+': return "0.000,0.000,0.000,1.000";
-        case '-': return "0.000,0.000,0.000,-1.000";
-        case '=': return "0.000,0.000,0.000,0.000";
+        case 'w': return "-0.100,0.000,0.000,0.000\n";
+        case 'a': return "0.000,0.000,0.100,0.000\n";
+        case 'd': return "0.000,0.000,-0.100,0.000\n";
+        case 's': return "0.100,0.000,0.000,0.000\n";
+        case 'x': return "0.000,0.000,0.000,0.000\n";
+        case '+': return "0.000,0.000,0.000,1.000\n";
+        case '-': return "0.000,0.000,0.000,-1.000\n";
+        case '=': return "0.000,0.000,0.000,0.000\n";
         default: return null;
     }
 }
