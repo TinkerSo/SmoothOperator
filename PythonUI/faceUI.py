@@ -587,10 +587,14 @@ class ManualControlScreen(Screen):
         return grid
 
     def create_press_handler(self, command):
-        return lambda x: self.send_command(command)
+        def handler(instance):
+            self.send_command(command)
+        return handler
 
     def create_release_handler(self):
-        return lambda x: self.send_command('x')
+        def handler(instance):
+            Clock.schedule_once(lambda dt: self.send_command('x'), 0.05)
+        return handler
 
     def send_command(self, command):
         return self.ws_client.send(command) if self.ws_client else False
