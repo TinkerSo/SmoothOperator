@@ -43,7 +43,7 @@ THEME_COLORS = {
 }
 
 # Set default window size
-Window.size = (800, 600)
+Window.size = (1920, 1080)
 Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
@@ -247,8 +247,8 @@ class FaceScreen(Widget):
     def random_audio(self, dt):
         print("Playing audio NOW")
         audio_files = [
-            "PythonUI/audio/Hi_Im_SmoothOperator.mp3",
-            "PythonUI/audio/BEEPBEEP.mp3"
+            "audio/Hi_Im_SmoothOperator.mp3",
+            "audio/BEEPBEEP.mp3"
         ]
         chosen_audio = random.choice(audio_files)
         self.play_audio(chosen_audio)
