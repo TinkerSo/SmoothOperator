@@ -54,8 +54,8 @@ app.get('/', (req, res) => {
 function getVCommand(command) {
     switch (command) {
         case 'w': return "-0.100 0.000 0.000 0.000";
-        case 'a': return "0.000 0.000 0.100 0.000";
-        case 'd': return "0.000 0.000 -0.100 0.000";
+        case 'a': return "0.000 0.000 -0.100 0.000";
+        case 'd': return "0.000 0.000 0.100 0.000";
         case 's': return "0.100 0.000 0.000 0.000";
         case 'x': return "0.000 0.000 0.000 0.000";
         case '+': return "0.000 0.000 0.000 1.000";
@@ -200,17 +200,20 @@ wss.on('connection', (ws, req) => {
                 console.error(`Invalid movement command: ${trimmedMessage}`);
                 return;
             }
-            arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
-                if (err) {
-                    console.error(`Error writing to Arduino: ${err}`);
-                } else {
-                    console.log(`Forwarded movement command to Arduino: ${vCommand}`);
-                    // Use drain() to ensure that the command is fully sent
-                    arduinoPort.drain(() => {
-                        console.log(`Drain complete for movement command: ${vCommand}`);
-                    });
-                }
-            });
+            setTimeout(() => {
+                arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
+                    if (err) {
+                        console.error(`Error writing to Arduino: ${err}`);
+                    } else {
+                        console.log(`Forwarded movement command to Arduino (after 50ms delay): ${vCommand}`);
+                        arduinoPort.drain(() => {
+                            console.log(`Drain complete for command: ${vCommand}`);
+                        });
+                    }
+                });
+            }, 50);
+
+
         } else {
             console.error(`Received unknown WebSocket message: ${trimmedMessage}`);
         }
