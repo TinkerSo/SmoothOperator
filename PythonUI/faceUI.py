@@ -48,8 +48,6 @@ Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
 SERVER_IP = "10.192.31.229"  # BU Guest
-# SERVER_IP = "128.197.53.43" # Ethernet
-# SERVER_IP = 192.168.1.5 # Netgear
 SERVER_PORT = 3000
 WS_SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
 HTTP_SERVER_URL = f"http://{SERVER_IP}:{SERVER_PORT}"
@@ -589,10 +587,14 @@ class ManualControlScreen(Screen):
         return grid
 
     def create_press_handler(self, command):
-        return lambda x: self.send_command(command)
+        def handler(instance):
+            self.send_command(command)
+        return handler
 
     def create_release_handler(self):
-        return lambda x: self.send_command('x')
+        def handler(instance):
+            Clock.schedule_once(lambda dt: self.send_command('x'), 0.1)
+        return handler
 
     def send_command(self, command):
         return self.ws_client.send(command) if self.ws_client else False
