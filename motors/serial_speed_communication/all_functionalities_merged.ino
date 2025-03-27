@@ -119,8 +119,8 @@ bool hasThreeDecimalPlaces(String val) {
 }
 
 void setup() {
-  Serial.begin(115200);
-  Serial1.begin(115200);
+  Serial.begin(9600);
+  Serial1.begin(9600);
   roboclaw.begin(BAUDRATE);
 
   strip.begin();
@@ -174,8 +174,8 @@ void loop() {
   else if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
     input.trim();
-//    Serial1.print("Raw input: "); //debugging line
-//    Serial1.println(input);//debugging line
+    Serial.print("Raw input: "); //debugging line
+    Serial.println(input);//debugging line
 
     int firstSpace = input.indexOf(' ');
     int secondSpace = input.indexOf(' ', firstSpace + 1);
@@ -193,14 +193,23 @@ void loop() {
       if (!hasThreeDecimalPlaces(Vx_str) || !hasThreeDecimalPlaces(Vtheta_str) || !hasThreeDecimalPlaces(lift_str)) {
         Serial.println("Error: Values must have exactly 3 decimal places.");
         liftStop();
+        roboclaw.SpeedM1(ROBOCLAW_ADDRESS, 0);
+        roboclaw.SpeedM2(ROBOCLAW_ADDRESS, 0);
       } else {
-        float Vx = Vx_str.toFloat(), Vtheta = Vtheta_str.toFloat(), lift_action = lift_str.toFloat();
+        float Vx = Vx_str.toFloat(), Vy = Vy_str.toFloat(), Vtheta = Vtheta_str.toFloat(), lift_action = lift_str.toFloat();
         if (lift_action != 0) setLiftSpeed(abs(lift_action)), lift_action > 0 ? liftUp() : liftDown();
         else liftStop();
 
         tankDrive(Vx, Vtheta, WHEEL_WIDTH, leftMotorSpeed, rightMotorSpeed);
         roboclaw.SpeedM1(ROBOCLAW_ADDRESS, -mps_to_qpps(leftMotorSpeed));
         roboclaw.SpeedM2(ROBOCLAW_ADDRESS, mps_to_qpps(rightMotorSpeed));
+        if (Vx != 0.000 || Vy != 0.000)
+        {
+          setLEDs(strip.Color(0, 255, 0));
+        } else {
+          setLEDs(strip.Color(255, 0, 0));
+
+        }
       }
     }
   }
