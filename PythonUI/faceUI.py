@@ -560,7 +560,7 @@ class ManualControlScreen(Screen):
         self.main_layout.add_widget(self.control_grid)
         self.add_widget(self.main_layout)
         # Set default speed to Low Speed on startup and send command "L"
-        # Clock.schedule_once(lambda dt: self.set_default_speed(), 0)
+        Clock.schedule_once(lambda dt: self.set_default_speed(), 0)
 
     def update_layout(self, *args):
         self.bg.pos = self.main_layout.pos
@@ -572,33 +572,35 @@ class ManualControlScreen(Screen):
         grid = GridLayout(rows=4, cols=3, spacing=15, padding=20,
                           size_hint=(0.9, 0.7), pos_hint={'center_x': 0.5, 'center_y': 0.45})
         button_map = {
+            # Speed buttons in green
+            "Low Speed": ("L", THEME_COLORS['success']),
+            "Medium Speed": ("M", THEME_COLORS['success']),
+            "High Speed": ("H", THEME_COLORS['success']),
             "Forward": ("w", THEME_COLORS['primary']),
             "Left": ("a", THEME_COLORS['primary']),
             "STOP": ("x", THEME_COLORS['error']),
             "Right": ("d", THEME_COLORS['primary']),
-            "Reverse": ("s", THEME_COLORS['primary']),
-            # Speed buttons in green
-            "Low Speed": ("L", THEME_COLORS['success']),
-            "Medium Speed": ("M", THEME_COLORS['success']),
-            "High Speed": ("H", THEME_COLORS['success'])
+            "Reverse": ("s", THEME_COLORS['primary'])
         }
         layout_structure = [
+            ["Low Speed", "Medium Speed", "High Speed"],
             [None, "Forward", None],
             ["Left", "STOP", "Right"],
-            [None, "Reverse", None],
-            ["Low Speed", "Medium Speed", "High Speed"]  # New row for speed control.
+            [None, "Reverse", None]
         ]
         for row in layout_structure:
             for label in row:
                 if label:
                     command, color = button_map[label]
-                    btn = RoundedButton(text=label, bg_color=color, font_size=50, height=80)
                     if label in ["Low Speed", "Medium Speed", "High Speed"]:
+                        btn = RoundedButton(text=label, bg_color=color, font_size=50, height=40, size_hint=(1, 0.5))
+
                         # Store the speed button reference for highlighting
                         self.speed_buttons[label] = btn
                         # Bind only on_press to keep the speed selection active.
                         btn.bind(on_press=self.create_speed_handler(command, btn))
                     else:
+                        btn = RoundedButton(text=label, bg_color=color, font_size=50, height=80)
                         btn.bind(on_press=self.create_press_handler(command))
                         btn.bind(on_release=self.create_release_handler())
                     grid.add_widget(btn)
