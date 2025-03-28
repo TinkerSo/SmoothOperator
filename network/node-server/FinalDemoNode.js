@@ -50,20 +50,42 @@ app.get('/', (req, res) => {
     res.send('Hello from the Jetson Nano Node.js Server!');
 });
 
-// Function to map commands to vCommand strings (flipped for the physical robot)
+// Global speed setting; default is low.
+let currentSpeed = 'L';
+
+// Define base command templates with a placeholder for speed
+const baseCommands = {
+    w: "-{speed} 0.000 0.000 0.000",
+    s: "{speed} 0.000 0.000 0.000",
+    a: "0.000 0.000 -{speed} 0.000",
+    d: "0.000 0.000 {speed} 0.000",
+    x: "0.000 0.000 0.000 0.000",
+    '+': "0.000 0.000 0.000 1.000",
+    '-': "0.000 0.000 0.000 -1.000",
+    '=': "0.000 0.000 0.000 0.000"
+};
+
+// For each movement command that depends on speed, define the base low value.
+// (For commands like 'x', '+', '-' these values are ignored.)
+const speedValues = {
+    w: { L: 0.100, M: 0.200, H: 0.250 },
+    s: { L: 0.100, M: 0.200, H: 0.250 },
+    a: { L: 0.050, M: 0.100, H: 0.150 },
+    d: { L: 0.050, M: 0.100, H: 0.150 }
+};
+
 function getVCommand(command) {
-    switch (command) {
-        case 'w': return "-0.250 0.000 0.000 0.000";
-        case 'a': return "0.000 0.000 -0.100 0.000";
-        case 'd': return "0.000 0.000 0.100 0.000";
-        case 's': return "0.250 0.000 0.000 0.000";
-        case 'x': return "0.000 0.000 0.000 0.000";
-        case '+': return "0.000 0.000 0.000 1.000";
-        case '-': return "0.000 0.000 0.000 -1.000";
-        case '=': return "0.000 0.000 0.000 0.000";
-        default: return null;
+    // For commands that have a speed component:
+    if (baseCommands[command] && baseCommands[command].includes("{speed}")) {
+        // Look up the speed value for this command based on currentSpeed.
+        const speedVal = speedValues[command] ? speedValues[command][currentSpeed] : 0.000;
+        // Replace the placeholder with the speed value, formatted to 3 decimals.
+        return baseCommands[command].replace("{speed}", speedVal.toFixed(3));
     }
+    // For commands that do not require speed substitution, return as-is.
+    return baseCommands[command] || null;
 }
+
 
 // ------------------ Modified API endpoint for ROS commands ------------------
 // API endpoint for ROS commands
@@ -249,20 +271,16 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message) => {
         const trimmedMessage = message.toString().trim();
-        
-        // If the message is "AUTH_SUCCESS", broadcast it.
-        if (trimmedMessage === 'AUTH_SUCCESS') {
-            console.log("Received AUTH_SUCCESS. Broadcasting to all clients...");
-            wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send('AUTH_SUCCESS');
-                }
-            });
+
+        // Handle speed-setting commands (L, M, H) separately.
+        if (['L', 'M', 'H'].includes(trimmedMessage)) {
+            currentSpeed = trimmedMessage;
+            console.log(`Speed set to: ${currentSpeed}`);
             return; // Do not process further.
         }
 
-        // Check if it's a movement command
-        if (['w', 'a', 's', 'd', 'x', '+', '=', '-'].includes(trimmedMessage)) {
+        // Process movement commands
+        if (['w', 'a', 's', 'd', 'x', '+', '-', '='].includes(trimmedMessage)) {
             console.log(`Received movement command: ${trimmedMessage}`);
             // Broadcast the movement command to all clients.
             wss.clients.forEach((client) => {
@@ -271,7 +289,7 @@ wss.on('connection', (ws, req) => {
                 }
             });
             
-            // Map and forward the command to the Arduino.
+            // Map and forward the command to the Arduino using the current speed.
             const vCommand = getVCommand(trimmedMessage);
             if (!vCommand) {
                 console.error(`Invalid movement command: ${trimmedMessage}`);

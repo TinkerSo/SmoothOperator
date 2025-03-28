@@ -39,7 +39,8 @@ THEME_COLORS = {
     'text': get_color_from_hex('#212121'),
     'success': get_color_from_hex('#4CAF50'),
     'error': get_color_from_hex('#F44336'),
-    'disabled': get_color_from_hex('#BDBDBD')
+    'disabled': get_color_from_hex('#BDBDBD'),
+    'highlight': get_color_from_hex('#39FF14')
 }
 
 # Set default window size
@@ -47,8 +48,8 @@ Window.size = (1920, 1080)
 Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
-SERVER_IP = "10.192.31.229"  # BU Guest
-# SERVER_IP = "128.197.53.43" # Ethernet
+# SERVER_IP = "10.192.31.229"  # BU Guest
+SERVER_IP = "128.197.53.43" # Ethernet
 # SERVER_IP = 192.168.1.5 # Netgear
 
 SERVER_PORT = 3000
@@ -540,9 +541,11 @@ class WebSocketClient:
             return False
 
 # ------------------ ManualControlScreen ------------------
+
 class ManualControlScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.speed_buttons = {}  # To keep track of speed buttons for highlighting
         self.main_layout = FloatLayout()
         with self.main_layout.canvas.before:
             Color(*THEME_COLORS['background'])
@@ -556,38 +559,74 @@ class ManualControlScreen(Screen):
         self.control_grid = self.create_control_grid()
         self.main_layout.add_widget(self.control_grid)
         self.add_widget(self.main_layout)
+        # Set default speed to Low Speed on startup and send command "L"
+        # Clock.schedule_once(lambda dt: self.set_default_speed(), 0)
 
     def update_layout(self, *args):
         self.bg.pos = self.main_layout.pos
         self.bg.size = self.main_layout.size
-        self.control_grid.size_hint = (0.9, 0.6)
+        self.control_grid.size_hint = (0.9, 0.7)
 
     def create_control_grid(self):
-        grid = GridLayout(rows=3, cols=3, spacing=15, padding=20, size_hint=(0.9, 0.6),
-                          pos_hint={'center_x': 0.5, 'center_y': 0.45})
+        # Increase rows to 4 to add speed control buttons at the bottom.
+        grid = GridLayout(rows=4, cols=3, spacing=15, padding=20,
+                          size_hint=(0.9, 0.7), pos_hint={'center_x': 0.5, 'center_y': 0.45})
         button_map = {
             "Forward": ("w", THEME_COLORS['primary']),
             "Left": ("a", THEME_COLORS['primary']),
             "STOP": ("x", THEME_COLORS['error']),
             "Right": ("d", THEME_COLORS['primary']),
             "Reverse": ("s", THEME_COLORS['primary']),
+            # Speed buttons in green
+            "Low Speed": ("L", THEME_COLORS['success']),
+            "Medium Speed": ("M", THEME_COLORS['success']),
+            "High Speed": ("H", THEME_COLORS['success'])
         }
         layout_structure = [
             [None, "Forward", None],
             ["Left", "STOP", "Right"],
-            [None, "Reverse", None]
+            [None, "Reverse", None],
+            ["Low Speed", "Medium Speed", "High Speed"]  # New row for speed control.
         ]
         for row in layout_structure:
             for label in row:
                 if label:
                     command, color = button_map[label]
                     btn = RoundedButton(text=label, bg_color=color, font_size=50, height=80)
-                    btn.bind(on_press=self.create_press_handler(command))
-                    btn.bind(on_release=self.create_release_handler())
+                    if label in ["Low Speed", "Medium Speed", "High Speed"]:
+                        # Store the speed button reference for highlighting
+                        self.speed_buttons[label] = btn
+                        # Bind only on_press to keep the speed selection active.
+                        btn.bind(on_press=self.create_speed_handler(command, btn))
+                    else:
+                        btn.bind(on_press=self.create_press_handler(command))
+                        btn.bind(on_release=self.create_release_handler())
                     grid.add_widget(btn)
                 else:
                     grid.add_widget(Widget(size_hint=(1, 1)))
         return grid
+
+    def create_speed_handler(self, command, btn):
+        def handler(instance):
+            self.set_active_speed(btn)
+            self.send_command(command)
+        return handler
+
+    def set_active_speed(self, active_btn):
+        highlight_color = THEME_COLORS['highlight']  # Your highlight color
+        normal_color = THEME_COLORS['success']         # The default speed color
+        for label, btn in self.speed_buttons.items():
+            if btn == active_btn:
+                btn.bg_color = highlight_color         # Update bg_color so on_release uses this
+                btn.button_color.rgba = highlight_color
+            else:
+                btn.bg_color = normal_color
+                btn.button_color.rgba = normal_color
+
+    def set_default_speed(self):
+        if "Low Speed" in self.speed_buttons:
+            self.set_active_speed(self.speed_buttons["Low Speed"])
+            self.send_command("L")
 
     def create_press_handler(self, command):
         def handler(instance):
@@ -601,6 +640,7 @@ class ManualControlScreen(Screen):
 
     def send_command(self, command):
         return self.ws_client.send(command) if self.ws_client else False
+
 
 # ------------------ LoadLuggageScreen ------------------
 class LoadLuggageScreen(Screen):
