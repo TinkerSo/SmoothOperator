@@ -13,7 +13,9 @@ export default function GamepadWithAuth() {
   const [authenticated, setAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState('');
   const [attempts, setAttempts] = useState(0);
-  
+  // New state for speed selection (default is Low, "L")
+  const [currentSpeed, setCurrentSpeed] = useState('L');
+
   // Update these to your server's addresses:
   // const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson on Netgear
   // const HTTP_SERVER = 'http://128.197.53.43:3000'; // Jetson on Ethernet
@@ -36,7 +38,7 @@ export default function GamepadWithAuth() {
 
       ws.current.onmessage = (event) => {
         console.log('📩 Received:', event.data);
-        // You can add handling of incoming messages here if needed.
+        // Handle incoming messages as needed.
       };
 
       ws.current.onerror = (error) => {
@@ -75,7 +77,6 @@ export default function GamepadWithAuth() {
   };
 
   // --------------------- Passcode Screen ---------------------
-  // When the user types 4 digits, send them to /api/authenticate.
   const handlePasscodeChange = (text) => {
     const cleanedText = text.replace(/[^0-9]/g, '').slice(0, 4);
     setPasscode(cleanedText);
@@ -116,6 +117,7 @@ export default function GamepadWithAuth() {
     }
   };
 
+  // If not authenticated, show the passcode screen.
   if (!authenticated) {
     return (
       <View style={styles.passcodeContainer}>
@@ -145,17 +147,57 @@ export default function GamepadWithAuth() {
     );
   }
 
-  // --------------------- Gamepad Controls ---------------------
+  // --------------------- Remote Control / Gamepad ---------------------
+  // Function to handle directional button press
   const handlePressIn = (command) => {
     sendCommand(command);
   };
 
+  // Function to handle directional button release (sending a stop command)
   const handlePressOut = () => {
-    sendCommand('x'); // Send stop command when released
+    sendCommand('x');
+  };
+
+  // Function to handle speed change. Updates state and sends the speed command.
+  const handleSpeedChange = (speed) => {
+    setCurrentSpeed(speed);
+    sendCommand(speed);
   };
 
   return (
     <View style={styles.container}>
+      {/* Speed Buttons at the Top */}
+      <View style={styles.speedButtonsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.speedButton,
+            currentSpeed === 'L' && styles.activeSpeedButton,
+          ]}
+          onPress={() => handleSpeedChange('L')}
+        >
+          <Text style={styles.speedButtonText}>Low</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.speedButton,
+            currentSpeed === 'M' && styles.activeSpeedButton,
+          ]}
+          onPress={() => handleSpeedChange('M')}
+        >
+          <Text style={styles.speedButtonText}>Medium</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.speedButton,
+            currentSpeed === 'H' && styles.activeSpeedButton,
+          ]}
+          onPress={() => handleSpeedChange('H')}
+        >
+          <Text style={styles.speedButtonText}>High</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Directional Controls */}
       <TouchableOpacity
         style={styles.button}
         onPressIn={() => handlePressIn('w')}
@@ -197,11 +239,36 @@ export default function GamepadWithAuth() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#f0f0f0',
     padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  // Speed buttons container at the top
+  speedButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 10,
+    width: '100%',
+    marginBottom: 20,
+  },
+  speedButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  activeSpeedButton: {
+    backgroundColor: '#81C784',
+  },
+  speedButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  // Directional buttons and gamepad styles
   row: {
     flexDirection: 'row',
     marginVertical: 10,
@@ -243,6 +310,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  // Passcode screen styles
   passcodeContainer: {
     flex: 1,
     justifyContent: 'center',
