@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 const { spawn } = require('child_process');
+const axios = require('axios');
 
 const app = express();
 const PORT = 3000;
