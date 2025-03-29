@@ -48,9 +48,10 @@ Window.size = (1920, 1080)
 Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
-SERVER_IP = "10.192.31.229"  # BU Guest
+# SERVER_IP = "10.192.31.229"  # BU Guest
 # SERVER_IP = "128.197.53.43" # Ethernet
 # SERVER_IP = 192.168.1.5 # Netgear
+SERVER_IP = "10.193.24.226" #  BU Guest Changed on SmoothOperator2 somehow
 
 SERVER_PORT = 3000
 WS_SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"

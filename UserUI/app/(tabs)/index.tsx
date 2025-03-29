@@ -6,6 +6,9 @@ import {
   TextInput,
   Alert,
   StyleSheet,
+  SafeAreaView,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
 
 export default function GamepadWithAuth() {
@@ -20,8 +23,11 @@ export default function GamepadWithAuth() {
   // const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson on Netgear
   // const HTTP_SERVER = 'http://128.197.53.43:3000'; // Jetson on Ethernet
   // const WS_SERVER = 'ws://128.197.53.43:3000'; // Jetson on Ethernet
-  const HTTP_SERVER = 'http://10.192.31.229:3000'; // Jetson on BU Guest
-  const WS_SERVER = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
+  // const HTTP_SERVER = 'http://10.192.31.229:3000'; // Jetson on BU Guest
+  // const WS_SERVER = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
+  const HTTP_SERVER = 'http://10.193.24.226:3000'; // Jetson on BU Guest SO2
+  const WS_SERVER = 'ws://10.193.24.226:3000'; // Jetson on BU Guest SO2
+  
   const maxRetries = 5;
   const retryCountRef = useRef(0);
 
@@ -120,30 +126,35 @@ export default function GamepadWithAuth() {
   // If not authenticated, show the passcode screen.
   if (!authenticated) {
     return (
-      <View style={styles.passcodeContainer}>
-        <Text style={styles.passcodeTitle}>Good Enter Passcode</Text>
-        <Text style={styles.passcodeInstructions}>
-          Please enter your 4-digit connect passcode to continue.
-        </Text>
-        <TextInput
-          style={styles.passcodeInput}
-          value={passcode}
-          onChangeText={handlePasscodeChange}
-          keyboardType="number-pad"
-          secureTextEntry={true}
-          maxLength={4}
-          placeholder="****"
-          placeholderTextColor="#999"
-        />
-        <View style={styles.passcodeHints}>
-          <Text style={styles.passcodeHint}>
-            {passcode.length >= 1 ? '●' : '○'}
-            {passcode.length >= 2 ? '●' : '○'}
-            {passcode.length >= 3 ? '●' : '○'}
-            {passcode.length >= 4 ? '●' : '○'}
-          </Text>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor="#1E2C3A" />
+        <View style={styles.passcodeContainer}>
+          <View style={styles.passcodeCard}>
+            <Text style={styles.passcodeTitle}>SmoothOperator Controller</Text>
+            <Text style={styles.passcodeInstructions}>
+              Please enter your 4-digit passcode to continue
+            </Text>
+            <TextInput
+              style={styles.passcodeInput}
+              value={passcode}
+              onChangeText={handlePasscodeChange}
+              keyboardType="number-pad"
+              secureTextEntry={true}
+              maxLength={4}
+              placeholder="****"
+              placeholderTextColor="#8C9BAA"
+            />
+            <View style={styles.passcodeHints}>
+              <Text style={styles.passcodeHint}>
+                {passcode.length >= 1 ? '●' : '○'}
+                {passcode.length >= 2 ? '●' : '○'}
+                {passcode.length >= 3 ? '●' : '○'}
+                {passcode.length >= 4 ? '●' : '○'}
+              </Text>
+            </View>
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -165,186 +176,273 @@ export default function GamepadWithAuth() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Speed Buttons at the Top */}
-      <View style={styles.speedButtonsContainer}>
-        <TouchableOpacity
-          style={[
-            styles.speedButton,
-            currentSpeed === 'L' && styles.activeSpeedButton,
-          ]}
-          onPress={() => handleSpeedChange('L')}
-        >
-          <Text style={styles.speedButtonText}>Low</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.speedButton,
-            currentSpeed === 'M' && styles.activeSpeedButton,
-          ]}
-          onPress={() => handleSpeedChange('M')}
-        >
-          <Text style={styles.speedButtonText}>Medium</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.speedButton,
-            currentSpeed === 'H' && styles.activeSpeedButton,
-          ]}
-          onPress={() => handleSpeedChange('H')}
-        >
-          <Text style={styles.speedButtonText}>High</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#1E2C3A" />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerText}>SmoothOperator Controller</Text>
+        </View>
+        
+        {/* Speed Buttons at the Top */}
+        <View style={styles.speedButtonsContainer}>
+          <Text style={styles.sectionTitle}>Speed</Text>
+          <View style={styles.speedButtonsRow}>
+            <TouchableOpacity
+              style={[
+                styles.speedButton,
+                currentSpeed === 'L' && styles.activeSpeedButton,
+              ]}
+              onPress={() => handleSpeedChange('L')}
+            >
+              <Text style={[styles.speedButtonText, currentSpeed === 'L' && styles.activeSpeedText]}>Low</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.speedButton,
+                currentSpeed === 'M' && styles.activeSpeedButton,
+              ]}
+              onPress={() => handleSpeedChange('M')}
+            >
+              <Text style={[styles.speedButtonText, currentSpeed === 'M' && styles.activeSpeedText]}>Medium</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.speedButton,
+                currentSpeed === 'H' && styles.activeSpeedButton,
+              ]}
+              onPress={() => handleSpeedChange('H')}
+            >
+              <Text style={[styles.speedButtonText, currentSpeed === 'H' && styles.activeSpeedText]}>High</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      {/* Directional Controls */}
-      <TouchableOpacity
-        style={styles.button}
-        onPressIn={() => handlePressIn('w')}
-        onPressOut={handlePressOut}
-      >
-        <Text style={styles.buttonText}>⬆️</Text>
-      </TouchableOpacity>
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={styles.button}
-          onPressIn={() => handlePressIn('a')}
-          onPressOut={handlePressOut}
-        >
-          <Text style={styles.buttonText}>⬅️</Text>
-        </TouchableOpacity>
-        <View style={styles.spacer} />
-        <TouchableOpacity
-          style={styles.button}
-          onPressIn={() => handlePressIn('d')}
-          onPressOut={handlePressOut}
-        >
-          <Text style={styles.buttonText}>➡️</Text>
-        </TouchableOpacity>
-      </View>
-      <TouchableOpacity
-        style={styles.button}
-        onPressIn={() => handlePressIn('s')}
-        onPressOut={handlePressOut}
-      >
-        <Text style={styles.buttonText}>⬇️</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.stopButton} onPress={() => sendCommand('x')}>
-        <Text style={styles.buttonText}>🛑 Stop</Text>
-      </TouchableOpacity>
+        {/* Movement Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Movement Controls</Text>
+          
+          {/* Directional Controls */}
+          <View style={styles.controlsContainer}>
+            <TouchableOpacity
+              style={styles.button}
+              onPressIn={() => handlePressIn('w')}
+              onPressOut={handlePressOut}
+            >
+              <Text style={styles.directionText}>FORWARD</Text>
+            </TouchableOpacity>
+            <View style={styles.row}>
+              <TouchableOpacity
+                style={styles.button}
+                onPressIn={() => handlePressIn('a')}
+                onPressOut={handlePressOut}
+              >
+                <Text style={styles.directionText}>LEFT</Text>
+              </TouchableOpacity>
+              <View style={styles.spacer} />
+              <TouchableOpacity
+                style={styles.button}
+                onPressIn={() => handlePressIn('d')}
+                onPressOut={handlePressOut}
+              >
+                <Text style={styles.directionText}>RIGHT</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.button}
+              onPressIn={() => handlePressIn('s')}
+              onPressOut={handlePressOut}
+            >
+              <Text style={styles.directionText}>BACK</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.stopButton} onPress={() => sendCommand('x')}>
+              <Text style={styles.stopButtonText}>STOP</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      {/* --------------------- Lift Controls --------------------- */}
-      <View style={styles.liftContainer}>
-        <TouchableOpacity
-          style={styles.liftButton}
-          onPressIn={() => sendCommand('+')}
-          onPressOut={() => sendCommand('=')}
-        >
-          <Text style={styles.liftButtonText}>Lift Up</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.liftButton}
-          onPressIn={() => sendCommand('-')}
-          onPressOut={() => sendCommand('=')}
-        >
-          <Text style={styles.liftButtonText}>Lift Down</Text>
-        </TouchableOpacity>
+        {/* --------------------- Lift Controls --------------------- */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Lift Controls</Text>
+          <View style={styles.liftContainer}>
+            <TouchableOpacity
+              style={styles.liftButton}
+              onPressIn={() => sendCommand('+')}
+              onPressOut={() => sendCommand('=')}
+            >
+              <Text style={styles.liftButtonText}>Lift Up</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.liftButton}
+              onPressIn={() => sendCommand('-')}
+              onPressOut={() => sendCommand('=')}
+            >
+              <Text style={styles.liftButtonText}>Lift Down</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
+const { width } = Dimensions.get('window');
+const buttonSize = Math.min(80, width * 0.18);
+
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#1E2C3A',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
-    padding: 20,
+    backgroundColor: '#F2F7FA',
+    padding: 16,
+  },
+  header: {
+    backgroundColor: '#1E2C3A',
+    paddingVertical: 16,
+    marginHorizontal: -16,
+    marginTop: -16,
+    marginBottom: 16,
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  headerText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  sectionContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E2C3A',
+    marginBottom: 12,
   },
   // Speed buttons container at the top
   speedButtonsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  speedButtonsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#e0e0e0',
-    paddingVertical: 10,
-    width: '100%',
-    marginBottom: 20,
+    justifyContent: 'space-between',
   },
   speedButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
+    flex: 1,
+    backgroundColor: '#F2F7FA',
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DFE6ED',
   },
   activeSpeedButton: {
-    backgroundColor: '#81C784',
+    backgroundColor: '#3498DB',
+    borderColor: '#3498DB',
   },
   speedButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: '#4A5C6A',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  activeSpeedText: {
+    color: '#FFFFFF',
   },
   // Directional buttons and gamepad styles
+  controlsContainer: {
+    alignItems: 'center',
+  },
   row: {
     flexDirection: 'row',
-    marginVertical: 10,
+    marginVertical: 8,
     alignItems: 'center',
   },
   spacer: {
-    width: 130,
+    width: buttonSize * 1.6,
   },
   button: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#007bff',
-    borderRadius: 40,
+    width: buttonSize * 1.6,
+    height: buttonSize,
+    backgroundColor: '#3498DB',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 10,
+    margin: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  directionText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: 'bold',
   },
   stopButton: {
-    width: 100,
-    height: 80,
-    backgroundColor: '#ff0000',
-    borderRadius: 40,
+    width: buttonSize * 1.6,
+    height: buttonSize * 0.8,
+    backgroundColor: '#E74C3C',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   buttonText: {
     fontSize: 24,
     color: 'white',
     fontWeight: 'bold',
   },
+  stopButtonText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
+  },
   // Lift controls container
   liftContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 30,
-    width: '100%',
+    justifyContent: 'space-between',
   },
   liftButton: {
-    backgroundColor: '#8e44ad',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 5,
-    marginHorizontal: 10,
+    flex: 1,
+    backgroundColor: '#9B59B6',
+    paddingVertical: 14,
+    borderRadius: 8,
+    marginHorizontal: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
   },
   liftButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   // Passcode screen styles
@@ -353,35 +451,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1E2C3A',
+  },
+  passcodeCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '90%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   passcodeTitle: {
-    marginBottom: 20,
+    marginBottom: 16,
     textAlign: 'center',
-    fontSize: 28,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1E2C3A',
   },
   passcodeInstructions: {
-    marginBottom: 30,
+    marginBottom: 24,
     textAlign: 'center',
-    fontSize: 18,
+    fontSize: 16,
+    color: '#4A5C6A',
   },
   passcodeInput: {
     width: '80%',
-    height: 50,
+    height: 56,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    fontSize: 18,
-    marginBottom: 20,
+    borderColor: '#DFE6ED',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 20,
+    marginBottom: 16,
+    backgroundColor: '#F6F9FC',
+    textAlign: 'center',
   },
   passcodeHints: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   passcodeHint: {
     fontSize: 24,
-    letterSpacing: 10,
+    letterSpacing: 16,
+    color: '#3498DB',
   },
 });
