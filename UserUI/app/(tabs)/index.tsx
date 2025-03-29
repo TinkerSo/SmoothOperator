@@ -18,10 +18,10 @@ export default function GamepadWithAuth() {
 
   // Update these to your server's addresses:
   // const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson on Netgear
-  // const HTTP_SERVER = 'http://128.197.53.43:3000'; // Jetson on Ethernet
-  // const WS_SERVER = 'ws://128.197.53.43:3000'; // Jetson on Ethernet
-  const HTTP_SERVER = 'http://10.192.31.229:3000'; // Jetson on BU Guest
-  const WS_SERVER = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
+  const HTTP_SERVER = 'http://128.197.53.43:3000'; // Jetson on Ethernet
+  const WS_SERVER = 'ws://128.197.53.43:3000'; // Jetson on Ethernet
+  // const HTTP_SERVER = 'http://10.192.31.229:3000'; // Jetson on BU Guest
+  // const WS_SERVER = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
   const maxRetries = 5;
   const retryCountRef = useRef(0);
 

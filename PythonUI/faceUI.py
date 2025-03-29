@@ -143,6 +143,7 @@ class MouthWidget(Widget):
         with self.canvas:
             Color(*THEME_COLORS['primary'])
             self.smile_line = Line(bezier=[], width=4.0)
+            self.smile_line1 = Line(bezier=[], width=4.0)
             self.update_mouth()
         self.bind(pos=self.update_mouth, size=self.update_mouth, mouth_open=self.update_mouth)
 
@@ -200,8 +201,8 @@ class FaceScreen(Widget):
         self.add_widget(self.mouth_widget)
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
 
-        # Schedule random audio announcements
-        self.schedule_random_audio()
+        # # Schedule random audio announcements
+        # self.schedule_random_audio()
 
         # Start remote WebSocket for keyboard commands
         self.start_remote_ws()
@@ -244,36 +245,46 @@ class FaceScreen(Widget):
         self.right_eye.size = self.eye_size
         self.blinking = False
 
-    def schedule_random_audio(self, dt=0):
-        delay = random.randint(10, 30)
-        Clock.schedule_once(self.random_audio, delay)
+    # def schedule_random_audio(self, dt=0):
+    #     delay = random.randint(10, 30)
+    #     Clock.schedule_once(self.random_audio, delay)
 
-    def random_audio(self, dt):
-        print("Playing audio NOW")
-        audio_files = [
-            "audio/Hi_Im_SmoothOperator.mp3",
-            "audio/BEEPBEEP.mp3"
-        ]
-        chosen_audio = random.choice(audio_files)
-        self.play_audio(chosen_audio)
-        self.schedule_random_audio()
+    # def random_audio(self, dt):
+    #     print("Playing audio NOW")
+    #     audio_files = [
+    #         "audio/Hi_Im_SmoothOperator.mp3",
+    #         "audio/BEEPBEEP.mp3"
+    #     ]
+    #     chosen_audio = random.choice(audio_files)
+    #     self.play_audio(chosen_audio)
+    #     self.schedule_random_audio()
 
-    def play_audio(self, file_path):
-        print("Playing audio with pygame...")
-        try:
-            if pygame.mixer.music.get_busy():
-                pygame.mixer.music.stop()
-            pygame.mixer.music.load(file_path)
-            pygame.mixer.music.play()
-            self.start_mouth_animation()
-            Clock.schedule_interval(self.check_audio_finished, 0.1)
-        except Exception as e:
-            print("Unable to play audio file:", file_path, "error:", e)
+    # def play_audio(self, file_path):
+    #     print("Playing audio with pygame...")
+    #     try:
+    #         if pygame.mixer.music.get_busy():
+    #             pygame.mixer.music.stop()
+    #         pygame.mixer.music.load(file_path)
+    #         pygame.mixer.music.play()
+    #         self.start_mouth_animation()
+    #         Clock.schedule_interval(self.check_audio_finished, 0.1)
+    #     except Exception as e:
+    #         print("Unable to play audio file:", file_path, "error:", e)
 
+    # def check_audio_finished(self, dt):
+    #     if not pygame.mixer.music.get_busy():
+    #         self.stop_mouth_animation()
+    #         return False
+    #     return True
     def check_audio_finished(self, dt):
         if not pygame.mixer.music.get_busy():
             self.stop_mouth_animation()
-            return False
+            if hasattr(self, '_mouth_check_event') and self._mouth_check_event is not None:
+                self._mouth_check_event.cancel()
+                self._mouth_check_event = None
+            return False  # This cancels the scheduled check.
+        return True  # Continue checking.
+
 
     def start_mouth_animation(self):
         # Reduced animation complexity: slower, less extreme
@@ -322,8 +333,19 @@ class FaceScreen(Widget):
         print("FaceScreen remote WS opened")
 
     def process_remote_command(self, command):
-        movement_x = 300
-        movement_y = 200
+        sound_map = {
+            'w': 'Watchout',
+            's': 'Watchout',
+            'a': 'Watchout',
+            'd': 'Watchout',
+            'x': 'Watchout'
+        }
+        if command in sound_map:
+            sound_manager.play_sound(sound_map[command], face_widget=self)
+        
+        movement_x = 200
+        movement_y = 200  # Enable vertical movement
+        
         if command == 'w':
             self.eye_offset_y = movement_y
         elif command == 's':
@@ -335,8 +357,10 @@ class FaceScreen(Widget):
         elif command == 'x':
             self.eye_offset_x = 0
             self.eye_offset_y = 0
+
         self.update_positions()
         self.update_mouth_position()
+
 
     def reset_remote_offsets(self):
         self.eye_offset_x = 0
@@ -641,6 +665,14 @@ class ManualControlScreen(Screen):
         return handler
 
     def send_command(self, command):
+        sound_map = {
+            'w': 'move_forward',
+            's': 'move_backward',
+            'a': 'turn_left',
+            'd': 'turn_right'
+        }
+        if command in sound_map:
+            sound_manager.play_sound(sound_map[command], face_widget=self)
         return self.ws_client.send(command) if self.ws_client else False
 
 
@@ -907,6 +939,46 @@ class HelpScreen(Screen):
         self.main_layout.add_widget(help_label)
         self.add_widget(self.main_layout)
 
+
+# ------------------ SoundManager ------------------
+class SoundManager:
+    def __init__(self):
+        pygame.mixer.init()
+        self.current_audio = None
+        self.audio_files = {
+            'start': ["PythonUI/audio/Hi_Im_SmoothOperator.mp3"],
+            'Connect': ["PythonUI/audio/Connect.mp3"],
+            'Help': ["PythonUI/audio/Help.mp3"],
+            'ManualControl': ["PythonUI/audio/ManualControl.mp3"],
+            'Menu': ["PythonUI/audio/Menu.mp3"],
+            'stop': ["PythonUI/audio/Scan.mp3"],
+            'ScanSuccess': ["PythonUI/audio/ScanSuccess.mp3"],
+            'BEEP': ["PythonUI/audio/BEEPBEEP.mp3"],
+            'Watchout': ["PythonUI/audio/Watchout.mp3"],
+            'Luggage': ["PythonUI/audio/Luggage.mp3"],
+        }
+
+    def play_sound(self, sound_key, face_widget=None):
+        if sound_key in self.audio_files:
+            sound_file = random.choice(self.audio_files[sound_key])
+            try:
+                if pygame.mixer.music.get_busy():
+                    pygame.mixer.music.stop()
+                pygame.mixer.music.load(sound_file)
+                pygame.mixer.music.play()
+                if face_widget:
+                    face_widget.start_mouth_animation()
+                    # Only schedule if not already scheduled
+                    if not hasattr(face_widget, '_mouth_check_event') or face_widget._mouth_check_event is None:
+                        face_widget._mouth_check_event = Clock.schedule_interval(face_widget.check_audio_finished, 0.1)
+            except Exception as e:
+                print(f"Error playing sound {sound_file}: {e}")
+        else:
+            print(f"Invalid sound key: {sound_key}")
+
+# Initialize a global sound manager
+sound_manager = SoundManager()
+
 # ------------------ Main Application ------------------
 class SmoothOperatorApp(App):
     def build(self):
@@ -921,14 +993,15 @@ class SmoothOperatorApp(App):
         connect_screen = ConnectScreen(name="connect")
         load_luggage_screen = LoadLuggageScreen(name="load_luggage")
 
-        face_widget = FaceScreen(self.switch_to_menu)
-        face_screen.add_widget(face_widget)
+        # Instantiate FaceScreen and keep a reference to it
+        self.face_widget = FaceScreen(self.switch_to_menu)
+        face_screen.add_widget(self.face_widget)
 
         menu_widget = MenuScreen(switch_to_manual=self.switch_to_manual,
-                                 switch_to_qr=self.switch_to_qr,
-                                 switch_to_help=self.switch_to_help,
-                                 switch_to_connect=self.switch_to_connect,
-                                 switch_to_load_luggage=self.switch_to_load_luggage)
+                                switch_to_qr=self.switch_to_qr,
+                                switch_to_help=self.switch_to_help,
+                                switch_to_connect=self.switch_to_connect,
+                                switch_to_load_luggage=self.switch_to_load_luggage)
         menu_screen.add_widget(menu_widget)
 
         self.sm.add_widget(face_screen)
@@ -941,29 +1014,38 @@ class SmoothOperatorApp(App):
         self.sm.add_widget(load_luggage_screen)
 
         self.sm.current = "face"
+        # Now pass the actual FaceScreen instance to play_sound
+        sound_manager.play_sound('start', face_widget=self.face_widget)
         return self.sm
 
+
     def switch_to_menu(self):
+        sound_manager.play_sound('Menu')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "menu"
 
     def switch_to_manual(self):
+        sound_manager.play_sound('ManualControl')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "manual"
 
     def switch_to_qr(self):
+        sound_manager.play_sound('Scan')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "qr"
 
     def switch_to_help(self):
+        sound_manager.play_sound('Help')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "help"
 
     def switch_to_connect(self):
+        sound_manager.play_sound('Connect')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "connect"
 
     def switch_to_load_luggage(self):
+        sound_manager.play_sound('Luggage')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "load_luggage"
 
@@ -971,6 +1053,7 @@ class SmoothOperatorApp(App):
         if message:
             postscan_screen = self.sm.get_screen("postscan")
             postscan_screen.update_postscan_message(message)
+        sound_manager.play_sound('ScanSuccess')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "postscan"
 
