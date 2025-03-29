@@ -298,6 +298,17 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message) => {
         const trimmedMessage = message.toString().trim();
+        
+        // If the message is "AUTH_SUCCESS", broadcast it.
+        if (trimmedMessage === 'AUTH_SUCCESS') {
+            console.log("Received AUTH_SUCCESS. Broadcasting to all clients...");
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send('AUTH_SUCCESS');
+                }
+            });
+            return; // Do not process further.
+        }
 
         // Handle speed-setting commands (L, M, H) separately.
         if (['L', 'M', 'H'].includes(trimmedMessage)) {
