@@ -3,6 +3,7 @@ const cors = require('cors');
 const WebSocket = require('ws');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
+const { spawn } = require('child_process');
 
 const app = express();
 const PORT = 3000;
@@ -256,31 +257,86 @@ app.post('/api/authenticate', (req, res) => {
     }
 });
 
+///// before connecting ROS node
+// app.post('/api/QR', (req, res) => {
+//     // Destructure the expected fields from the request body.
+//     const { name, flight, to, from, dep_time, terminal, gate } = req.body;
+
+//     // Basic validation: you can require more fields if needed.
+//     if (!name || !flight) {
+//         return res.status(400).send({ error: 'Missing required QR details: name and flight are required.' });
+//     }
+
+//     // Log the received QR data
+//     console.log(`Received QR data: 
+//     Passenger Name: ${name}, 
+//     Flight Number: ${flight}, 
+//     From: ${from || 'Unknown'}, 
+//     To: ${to || 'Unknown'}, 
+//     Departure Time: ${dep_time || 'Unknown'}, 
+//     Terminal: ${terminal || 'Unknown'}, 
+//     Gate: ${gate || 'Unknown'}`);
+
+//     // Optionally: you might forward this data over websockets, store in a database,
+//     // or trigger some other action on your robot system.
+
+//     // Send back a response confirming receipt.
+//     res.status(200).send({ message: 'QR data received successfully.' });
+// });
+
 app.post('/api/QR', (req, res) => {
-    // Destructure the expected fields from the request body.
     const { name, flight, to, from, dep_time, terminal, gate } = req.body;
 
-    // Basic validation: you can require more fields if needed.
-    if (!name || !flight) {
-        return res.status(400).send({ error: 'Missing required QR details: name and flight are required.' });
+    // Basic validation
+    if (!name || !flight || !terminal || !gate) {
+        return res.status(400).send({ error: 'Missing required QR details: name, flight, terminal, and gate are required.' });
     }
 
-    // Log the received QR data
-    console.log(`Received QR data: 
-    Passenger Name: ${name}, 
-    Flight Number: ${flight}, 
-    From: ${from || 'Unknown'}, 
-    To: ${to || 'Unknown'}, 
-    Departure Time: ${dep_time || 'Unknown'}, 
-    Terminal: ${terminal || 'Unknown'}, 
-    Gate: ${gate || 'Unknown'}`);
+    console.log(`Received QR data:
+    Passenger Name: ${name}
+    Flight Number: ${flight}
+    From: ${from || 'Unknown'}
+    To: ${to || 'Unknown'}
+    Departure Time: ${dep_time || 'Unknown'}
+    Terminal: ${terminal}
+    Gate: ${gate}`);
 
-    // Optionally: you might forward this data over websockets, store in a database,
-    // or trigger some other action on your robot system.
+    // Launch ROS nav script with gate and terminal
+    const nav = spawn('rosrun', ['your_package_name', 'navigate_qr_node.py', gate, terminal]);
 
-    // Send back a response confirming receipt.
-    res.status(200).send({ message: 'QR data received successfully.' });
+    nav.stdout.on('data', (data) => {
+        console.log(`ROS stdout: ${data}`);
+    });
+
+    nav.stderr.on('data', (data) => {
+        console.error(`ROS stderr: ${data}`);
+    });
+
+    nav.on('close', (code) => {
+        console.log(`ROS nav script exited with code ${code}`);
+
+        // Respond to client after nav script completes (optional)
+        if (code === 0) {
+            res.status(200).send({
+                message: 'QR received and robot is navigating to destination.',
+                terminal,
+                gate,
+                status: 'success'
+            });
+        } else {
+            res.status(500).send({
+                message: 'Robot navigation failed or was aborted.',
+                terminal,
+                gate,
+                status: 'failure'
+            });
+        }
+    });
+
+    // If you want to respond immediately instead of waiting:
+    // res.status(200).send({ message: 'QR received. Robot is navigating.', terminal, gate });
 });
+
 
 
 // Start HTTP Server
