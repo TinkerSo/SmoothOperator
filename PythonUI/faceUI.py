@@ -138,14 +138,18 @@ class HeaderBar(BoxLayout):
 
 class MouthWidget(Widget):
     mouth_open = NumericProperty(0.1)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         with self.canvas:
             Color(*THEME_COLORS['primary'])
+            # Animated line
             self.smile_line = Line(bezier=[], width=4.0)
+            # Static line that will not animate
             self.smile_line1 = Line(bezier=[], width=4.0)
-            self.update_mouth()
+        # Initialize the mouth (which sets both lines)
         self.bind(pos=self.update_mouth, size=self.update_mouth, mouth_open=self.update_mouth)
+        self.update_mouth()
 
     def update_mouth(self, *args):
         width, height = self.width, self.height
@@ -160,7 +164,15 @@ class MouthWidget(Widget):
             right_x - width/4, bottom_y - smile_height,
             right_x, bottom_y
         ]
+        # Update the animated line
         self.smile_line.bezier = points
+
+        # Set the static line only once using the computed points
+        if not hasattr(self, '_static_line_set'):
+            self.smile_line1.bezier = points
+            self._static_line_set = True
+
+
 
 # ------------------ FaceScreen ------------------
 class FaceScreen(Widget):
