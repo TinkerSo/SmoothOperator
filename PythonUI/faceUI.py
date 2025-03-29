@@ -722,12 +722,13 @@ class LoadLuggageScreen(Screen):
         return False
 
 # ------------------ QR Code Reader Screen ------------------
+
 class QRScreen(Screen):
     def __init__(self, switch_to_postscan, **kwargs):
         super().__init__(**kwargs)
         self.switch_to_postscan = switch_to_postscan
         self.qr_scanned = False
-        self.capture = None
+        self.capture = None  # Will hold the OpenCV VideoCapture
         
         main_layout = FloatLayout()
         header = HeaderBar(title="Boarding Pass Scanner")
@@ -781,11 +782,13 @@ class QRScreen(Screen):
 
     def on_pre_enter(self):
         self.qr_scanned = False
+        # Open the webcam only when entering the QRScreen.
         self.capture = cv2.VideoCapture(0)
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 640)
 
     def on_leave(self, *args):
+        # Release the webcam when leaving to free resources.
         if self.capture is not None:
             self.capture.release()
             self.capture = None
@@ -825,6 +828,7 @@ class QRScreen(Screen):
                 terminal = ticket_info.get("terminal", "Unknown Terminal")
                 gate = ticket_info.get("gate", "Unknown Gate")
                 
+                # Build the payload but DO NOT send it immediately.
                 payload = {
                     "name": passenger_name,
                     "flight": flight_number,
@@ -834,12 +838,9 @@ class QRScreen(Screen):
                     "terminal": terminal,
                     "gate": gate
                 }
-                try:
-                    response = requests.post(f"{HTTP_SERVER_URL}/api/QR", json=payload, timeout=5)
-                    print("Sent QR data:", response.text)
-                except Exception as e:
-                    print("Error sending QR data:", e)
-                self.flash_green_and_transition(passenger_name, flight_number, home, destination, dep_time, terminal, gate)
+                # The immediate API call is now removed.
+                # Pass the payload to the postscan transition.
+                self.flash_green_and_transition(passenger_name, flight_number, home, destination, dep_time, terminal, gate, payload)
             except json.JSONDecodeError:
                 self.result_label.text = "Invalid QR format. Please try again."
                 self.result_label.color = THEME_COLORS['error']
@@ -855,7 +856,7 @@ class QRScreen(Screen):
         new_texture.blit_buffer(processed_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
         self.image_display.texture = new_texture
 
-    def flash_green_and_transition(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate):
+    def flash_green_and_transition(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate, payload):
         self.qr_scanned = True
         flash = Widget(size_hint=(1, 1))
         flash.opacity = 1
@@ -869,9 +870,9 @@ class QRScreen(Screen):
         self.add_widget(flash)
         anim = Animation(opacity=0, duration=0.5)
         anim.start(flash)
-        Clock.schedule_once(lambda dt: self.go_to_postscan(passenger_name, flight_number, home, destination, dep_time, terminal, gate, flash), 0.5)
+        Clock.schedule_once(lambda dt: self.go_to_postscan(passenger_name, flight_number, home, destination, dep_time, terminal, gate, payload, flash), 0.5)
 
-    def go_to_postscan(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate, flash):
+    def go_to_postscan(self, passenger_name, flight_number, home, destination, dep_time, terminal, gate, payload, flash):
         self.remove_widget(flash)
         postscan_message = (
             f"Welcome, [b]{passenger_name}[/b]!\n"
@@ -880,14 +881,17 @@ class QRScreen(Screen):
             f"Would you like Smooth Operator to bring your items to your gate automatically?"
         )
         if self.switch_to_postscan:
-            self.switch_to_postscan(postscan_message)
+            # Pass both the message and payload to the callback.
+            self.switch_to_postscan(postscan_message, payload)
         elif self.manager and self.manager.has_screen("postscan"):
             postscan_screen = self.manager.get_screen("postscan")
             postscan_screen.update_postscan_message(postscan_message)
+            postscan_screen.payload = payload  # Store payload on the postscan screen.
             self.manager.transition = CardTransition(mode='pop')
             self.manager.current = "postscan"
         else:
             print("PostScanScreen not found")
+
 
 # ------------------ PostScanScreen ------------------
 class PostScanScreen(Screen):
@@ -916,12 +920,19 @@ class PostScanScreen(Screen):
         self.details_label.text = message
 
     def on_yes(self, instance):
+        # Now send the payload to the API endpoint upon confirmation.
+        if self.payload:
+            try:
+                response = requests.post(f"{HTTP_SERVER_URL}/api/QR", json=self.payload, timeout=5)
+                print("Sent QR data after confirmation:", response.text)
+            except Exception as e:
+                print("Error sending QR data on confirmation:", e)
         app = App.get_running_app()
         app.sm.transition = CardTransition(mode='pop')
         app.sm.current = "face"
 
     def on_no(self, instance):
-        self.qr_scanned = False
+        self.payload = None  # Clear any stored payload.
         app = App.get_running_app()
         app.sm.transition = CardTransition(mode='pop')
         app.sm.current = "menu"
@@ -1053,10 +1064,11 @@ class SmoothOperatorApp(App):
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "load_luggage"
 
-    def switch_to_postscan(self, message=None):
+    def switch_to_postscan(self, message=None, payload=None):
         if message:
             postscan_screen = self.sm.get_screen("postscan")
             postscan_screen.update_postscan_message(message)
+            postscan_screen.payload = payload  # Store the payload for later use.
         sound_manager.play_sound('ScanSuccess')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "postscan"
