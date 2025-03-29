@@ -334,10 +334,18 @@ class FaceScreen(Widget):
     def on_remote_message(self, ws, message):
         print("FaceScreen remote WS message:", message)
         command = message.strip()
-        if command in ['w', 'a', 's', 'd', 'x']:
+        # Check for the specific "Goal Reached" message
+        if command == "Goal Reached":
+            Clock.schedule_once(lambda dt: self.handle_goal_reached(), 0)
+        elif command in ['w', 'a', 's', 'd', 'x']:
             Clock.schedule_once(lambda dt: self.process_remote_command(command), 0)
         else:
             print("Received unknown remote command:", command)
+    def handle_goal_reached(self):
+        print("Switching to GoalReachedScreen")
+        app = App.get_running_app()
+        app.sm.transition = CardTransition(mode='pop')
+        app.sm.current = "goal_reached"
 
     def on_remote_error(self, ws, error):
         print("FaceScreen remote WS error:", error)
@@ -384,6 +392,65 @@ class FaceScreen(Widget):
         self.eye_offset_y = 0
         self.update_positions()
         self.update_mouth_position()
+
+# ------------------ GoalReachedScreen ------------------
+
+
+class GoalReachedScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.main_layout = FloatLayout()
+        header = HeaderBar(title="Luggage Delivered",)
+        header.pos_hint = {'top': 1}
+        self.main_layout.add_widget(header)
+        
+        # The question to prompt the user
+        self.question_label = Label(
+            text="Gate reached!\nSmoothOperator has brought your luggage to your gate. Are you done using SmoothOperator?",
+            markup=True, font_size=50,
+            color=THEME_COLORS['text'], halign='center', valign='middle',
+            pos_hint={'center_x': 0.5, 'center_y': 0.65}
+        )
+        self.main_layout.add_widget(self.question_label)
+        
+        # Create Yes/No buttons
+        button_layout = BoxLayout(orientation='horizontal', size_hint=(0.5, 0.1),
+                                  pos_hint={'center_x': 0.5, 'y': 0.3}, spacing=20)
+        yes_button = RoundedButton(text="Yes", bg_color=THEME_COLORS['success'], font_size=50)
+        no_button = RoundedButton(text="No", bg_color=THEME_COLORS['error'], font_size=50)
+        yes_button.bind(on_press=self.on_yes)
+        no_button.bind(on_press=self.on_no)
+        button_layout.add_widget(yes_button)
+        button_layout.add_widget(no_button)
+        self.main_layout.add_widget(button_layout)
+        
+        self.add_widget(self.main_layout)
+
+    def on_yes(self, instance):
+        payload = {
+            "name": "default",
+            "flight": "default",
+            "from": "default",
+            "to": "default",
+            "dep_time": "default",
+            "terminal": "A",
+            "gate": "0",
+        }
+        try:
+            response = requests.post(f"{HTTP_SERVER_URL}/api/QR", json=payload, timeout=5)
+            print("Sent goal reached data after confirmation:", response.text)
+        except Exception as e:
+            print("Error sending goal reached data on confirmation:", e)
+        # Switch back to the Face screen (or another desired screen)
+        app = App.get_running_app()
+        app.sm.transition = CardTransition(mode='pop')
+        app.sm.current = "face"
+
+    def on_no(self, instance):
+        app = App.get_running_app()
+        app.sm.transition = CardTransition(mode='pop')
+        app.sm.current = "menu"
+
 
 # ------------------ ConnectScreen ------------------
 class ConnectScreen(Screen):
@@ -967,7 +1034,7 @@ class SoundManager:
         pygame.mixer.init()
         self.current_audio = None
         self.audio_files = {
-            'start': ["audio/Hi_Im_SmoothOperator.mp3"],
+            'start': ["PythonUI/audio/Hi_Im_SmoothOperator.mp3"],
             'Connect': ["audio/Connect.mp3"],
             'Help': ["audio/Help.mp3"],
             'ManualControl': ["audio/ManualControl.mp3"],
@@ -1010,6 +1077,8 @@ class SmoothOperatorApp(App):
         help_screen = HelpScreen(name="help")
         connect_screen = ConnectScreen(name="connect")
         load_luggage_screen = LoadLuggageScreen(name="load_luggage")
+        goal_reached_screen = GoalReachedScreen(name="goal_reached")
+
 
         self.face_widget = FaceScreen(self.switch_to_menu)
         face_screen.add_widget(self.face_widget)
@@ -1029,9 +1098,12 @@ class SmoothOperatorApp(App):
         self.sm.add_widget(help_screen)
         self.sm.add_widget(connect_screen)
         self.sm.add_widget(load_luggage_screen)
+        self.sm.add_widget(goal_reached_screen) 
+
 
         self.sm.current = "face"
-        sound_manager.play_sound('start', face_widget=self.face_widget)
+        Clock.schedule_interval(lambda dt: sound_manager.play_sound('start', face_widget=self.face_widget), 7)
+
         return self.sm
 
     def switch_to_menu(self):
