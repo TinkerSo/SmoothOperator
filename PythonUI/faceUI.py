@@ -64,16 +64,13 @@ pygame.mixer.init()
 class RoundedButton(ButtonBehavior, BoxLayout):
     def __init__(self, text="", icon=None, bg_color=THEME_COLORS['primary'], text_color=(1, 1, 1, 1),
                  font_size=50, radius=10, size_hint=(1, 1), height=60, **kwargs):
-        # Simplify rounded corners: default radius now 10
         super().__init__(size_hint=size_hint, height=height, **kwargs)
         self.bg_color = bg_color
         self.text = text
         self.radius = radius
-        # Use simpler color transition
         self.press_color = (self.bg_color[0] * 0.9, self.bg_color[1] * 0.9,
                             self.bg_color[2] * 0.9, self.bg_color[3])
 
-        # Create content layout (static, not recreated on every press)
         content = BoxLayout(orientation='horizontal', padding=10, spacing=10)
         if icon:
             icon_img = Image(source=icon, size_hint=(None, None), size=(30, 30))
@@ -83,7 +80,6 @@ class RoundedButton(ButtonBehavior, BoxLayout):
         content.add_widget(label)
         self.add_widget(content)
 
-        # Pre-create canvas instructions for background once
         with self.canvas.before:
             self.button_color = Color(*bg_color)
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
@@ -94,7 +90,6 @@ class RoundedButton(ButtonBehavior, BoxLayout):
         self.bg_rect.size = self.size
 
     def on_press(self):
-        # Update existing color instruction using press_color
         self.button_color.rgba = self.press_color
 
     def on_release(self):
@@ -110,7 +105,6 @@ class HeaderBar(BoxLayout):
             self.rect = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self.update_rect, size=self.update_rect)
 
-        # Create header content
         content = BoxLayout(orientation='horizontal', padding=10, spacing=10)
         if icon:
             icon_img = Image(source=icon, size_hint=(None, None), size=(40, 40))
@@ -144,11 +138,8 @@ class MouthWidget(Widget):
         super().__init__(**kwargs)
         with self.canvas:
             Color(*THEME_COLORS['primary'])
-            # Animated line
             self.smile_line = Line(bezier=[], width=4.0)
-            # Static line that will not animate
             self.smile_line1 = Line(bezier=[], width=4.0)
-        # Initialize the mouth (which sets both lines)
         self.bind(pos=self.update_mouth, size=self.update_mouth, mouth_open=self.update_mouth)
         self.update_mouth()
 
@@ -165,13 +156,36 @@ class MouthWidget(Widget):
             right_x - width/4, bottom_y - smile_height,
             right_x, bottom_y
         ]
-        # Update the animated line
         self.smile_line.bezier = points
-
-        # Set the static line only once using the computed points
         if not hasattr(self, '_static_line_set'):
             self.smile_line1.bezier = points
             self._static_line_set = True
+
+# A widget to draw a static smile, which remains constant.
+class StaticMouthWidget(Widget):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self.canvas:
+            Color(*THEME_COLORS['primary'])
+            self.static_line = Line(bezier=[], width=4.0)
+        self.bind(pos=self.update_static, size=self.update_static)
+        self.update_static()
+
+    def update_static(self, *args):
+        width, height = self.width, self.height
+        bottom_y = self.y
+        smile_width = 0.9
+        left_x = self.x + width * (1 - smile_width) / 2
+        right_x = self.x + width * (1 + smile_width) / 2
+        # Use a fixed mouth_open value (here 0.1) for the static smile.
+        fixed_smile_height = height * 0.1 * 10  
+        points = [
+            left_x, bottom_y,
+            left_x + width/4, bottom_y - fixed_smile_height,
+            right_x - width/4, bottom_y - fixed_smile_height,
+            right_x, bottom_y
+        ]
+        self.static_line.bezier = points
 
 class MouthWidget1(Widget):
     mouth_open = NumericProperty(0.1)
@@ -181,7 +195,6 @@ class MouthWidget1(Widget):
         with self.canvas:
             Color(*THEME_COLORS['primary'])
             self.smile_line = Line(bezier=[], width=4.0)
-        # Compute the mouth shape once—no bindings for continuous updates.
         self.update_mouth()
 
     def update_mouth(self, *args):
@@ -199,8 +212,6 @@ class MouthWidget1(Widget):
         ]
         self.smile_line.bezier = points
 
-
-
 # ------------------ FaceScreen ------------------
 class FaceScreen(Widget):
     def __init__(self, switch_screen_callback, **kwargs):
@@ -211,42 +222,36 @@ class FaceScreen(Widget):
         self.eye_spacing = Window.width * 0.5
         self.eye_offset_x = 0
         self.eye_offset_y = 0
+        self.movement_active = False
+        self.movement_sound_event = None
 
-        # Pre-render background once
         with self.canvas.before:
             Color(*THEME_COLORS['background'])
             self.bg = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self.update_bg, size=self.update_bg)
 
-        # Create eyes once
         with self.canvas:
             Color(*THEME_COLORS['primary'])
             self.left_eye = Ellipse(size=self.eye_size)
             self.right_eye = Ellipse(size=self.eye_size)
         self.update_positions()
         self.bind(pos=self.update_positions, size=self.on_resize)
-        # Reduced blink frequency: every 5 seconds instead of 3
         Clock.schedule_interval(self.blink, 5)
 
-        # Help button (pre-rendered)
         self.help_button = RoundedButton(text="?", bg_color=THEME_COLORS['accent'],
                                            font_size=30, radius=10, size_hint=(None, None), size=(80, 80))
         self.help_button.bind(on_press=lambda x: App.get_running_app().switch_to_help())
         self.add_widget(self.help_button)
         self.bind(pos=self.update_help_button_position, size=self.update_help_button_position)
 
-        # Mouth widget
+        # Animated mouth widget
         self.mouth_widget = MouthWidget(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
-        # self.mouth_widget1 = MouthWidget1(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
-
         self.add_widget(self.mouth_widget)
-        # self.add_widget(self.mouth_widget1)
+        # Static mouth widget (draws the constant smile)
+        self.static_mouth_widget = StaticMouthWidget(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
+        self.add_widget(self.static_mouth_widget)
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
 
-        # # Schedule random audio announcements
-        # self.schedule_random_audio()
-
-        # Start remote WebSocket for keyboard commands
         self.start_remote_ws()
 
     def update_help_button_position(self, *args):
@@ -265,8 +270,10 @@ class FaceScreen(Widget):
         self.right_eye.pos = (right_x, right_y)
 
     def update_mouth_position(self, *args):
-        self.mouth_widget.pos = (self.center_x - self.mouth_widget.width / 2 + self.eye_offset_x,
-                                 self.center_y - self.eye_size[1] / 2 + self.eye_offset_y - 20)
+        pos = (self.center_x - self.mouth_widget.width / 2 + self.eye_offset_x,
+               self.center_y - self.eye_size[1] / 2 + self.eye_offset_y - 20)
+        self.mouth_widget.pos = pos
+        self.static_mouth_widget.pos = pos
 
     def on_resize(self, *args):
         self.eye_size = (Window.width * 0.25, Window.height * 0.5)
@@ -287,49 +294,16 @@ class FaceScreen(Widget):
         self.right_eye.size = self.eye_size
         self.blinking = False
 
-    # def schedule_random_audio(self, dt=0):
-    #     delay = random.randint(10, 30)
-    #     Clock.schedule_once(self.random_audio, delay)
-
-    # def random_audio(self, dt):
-    #     print("Playing audio NOW")
-    #     audio_files = [
-    #         "audio/Hi_Im_SmoothOperator.mp3",
-    #         "audio/BEEPBEEP.mp3"
-    #     ]
-    #     chosen_audio = random.choice(audio_files)
-    #     self.play_audio(chosen_audio)
-    #     self.schedule_random_audio()
-
-    # def play_audio(self, file_path):
-    #     print("Playing audio with pygame...")
-    #     try:
-    #         if pygame.mixer.music.get_busy():
-    #             pygame.mixer.music.stop()
-    #         pygame.mixer.music.load(file_path)
-    #         pygame.mixer.music.play()
-    #         self.start_mouth_animation()
-    #         Clock.schedule_interval(self.check_audio_finished, 0.1)
-    #     except Exception as e:
-    #         print("Unable to play audio file:", file_path, "error:", e)
-
-    # def check_audio_finished(self, dt):
-    #     if not pygame.mixer.music.get_busy():
-    #         self.stop_mouth_animation()
-    #         return False
-    #     return True
     def check_audio_finished(self, dt):
         if not pygame.mixer.music.get_busy():
             self.stop_mouth_animation()
             if hasattr(self, '_mouth_check_event') and self._mouth_check_event is not None:
                 self._mouth_check_event.cancel()
                 self._mouth_check_event = None
-            return False  # This cancels the scheduled check.
-        return True  # Continue checking.
-
+            return False
+        return True
 
     def start_mouth_animation(self):
-        # Reduced animation complexity: slower, less extreme
         self.mouth_anim = Animation(mouth_open=0.6, duration=0.3) + Animation(mouth_open=0.1, duration=0.3)
         self.mouth_anim.repeat = True
         self.mouth_anim.start(self.mouth_widget)
@@ -375,33 +349,35 @@ class FaceScreen(Widget):
         print("FaceScreen remote WS opened")
 
     def process_remote_command(self, command):
-        sound_map = {
-            'w': 'Watchout',
-            's': 'Watchout',
-            'a': 'Watchout',
-            'd': 'Watchout'
-        }
-        if command in sound_map:
-            sound_manager.play_sound(sound_map[command], face_widget=self)
-        
-        movement_x = 200
-        movement_y = 200  # Enable vertical movement
-        
-        if command == 'w':
-            self.eye_offset_y = movement_y
-        elif command == 's':
-            self.eye_offset_y = -movement_y
-        elif command == 'a':
-            self.eye_offset_x = -movement_x
-        elif command == 'd':
-            self.eye_offset_x = movement_x
+        if command in ['w', 'a', 's', 'd']:
+            self.movement_active = True
+            if not self.movement_sound_event:
+                self.movement_sound_event = Clock.schedule_interval(self.play_movement_sound, 5.0)
+            movement_x = 200
+            movement_y = 200
+            if command == 'w':
+                self.eye_offset_y = movement_y
+            elif command == 's':
+                self.eye_offset_y = -movement_y
+            elif command == 'a':
+                self.eye_offset_x = -movement_x
+            elif command == 'd':
+                self.eye_offset_x = movement_x
+            self.update_positions()
+            self.update_mouth_position()
         elif command == 'x':
+            self.movement_active = False
+            if self.movement_sound_event:
+                self.movement_sound_event.cancel()
+                self.movement_sound_event = None
             self.eye_offset_x = 0
             self.eye_offset_y = 0
+            self.update_positions()
+            self.update_mouth_position()
 
-        self.update_positions()
-        self.update_mouth_position()
-
+    def play_movement_sound(self, dt):
+        if self.movement_active:
+            sound_manager.play_sound('Watchout', face_widget=self)
 
     def reset_remote_offsets(self):
         self.eye_offset_x = 0
@@ -606,11 +582,10 @@ class WebSocketClient:
             return False
 
 # ------------------ ManualControlScreen ------------------
-
 class ManualControlScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.speed_buttons = {}  # To keep track of speed buttons for highlighting
+        self.speed_buttons = {}
         self.main_layout = FloatLayout()
         with self.main_layout.canvas.before:
             Color(*THEME_COLORS['background'])
@@ -624,7 +599,6 @@ class ManualControlScreen(Screen):
         self.control_grid = self.create_control_grid()
         self.main_layout.add_widget(self.control_grid)
         self.add_widget(self.main_layout)
-        # Set default speed to Low Speed on startup and send command "L"
         Clock.schedule_once(lambda dt: self.set_default_speed(), 0)
 
     def update_layout(self, *args):
@@ -633,11 +607,9 @@ class ManualControlScreen(Screen):
         self.control_grid.size_hint = (0.9, 0.7)
 
     def create_control_grid(self):
-        # Increase rows to 4 to add speed control buttons at the bottom.
         grid = GridLayout(rows=4, cols=3, spacing=15, padding=20,
                           size_hint=(0.9, 0.7), pos_hint={'center_x': 0.5, 'center_y': 0.45})
         button_map = {
-            # Speed buttons in green
             "Low Speed": ("L", THEME_COLORS['success']),
             "Medium Speed": ("M", THEME_COLORS['success']),
             "High Speed": ("H", THEME_COLORS['success']),
@@ -659,10 +631,7 @@ class ManualControlScreen(Screen):
                     command, color = button_map[label]
                     if label in ["Low Speed", "Medium Speed", "High Speed"]:
                         btn = RoundedButton(text=label, bg_color=color, font_size=50, height=40, size_hint=(1, 0.5))
-
-                        # Store the speed button reference for highlighting
                         self.speed_buttons[label] = btn
-                        # Bind only on_press to keep the speed selection active.
                         btn.bind(on_press=self.create_speed_handler(command, btn))
                     else:
                         btn = RoundedButton(text=label, bg_color=color, font_size=50, height=80)
@@ -680,11 +649,11 @@ class ManualControlScreen(Screen):
         return handler
 
     def set_active_speed(self, active_btn):
-        highlight_color = THEME_COLORS['highlight']  # Your highlight color
-        normal_color = THEME_COLORS['success']         # The default speed color
+        highlight_color = THEME_COLORS['highlight']
+        normal_color = THEME_COLORS['success']
         for label, btn in self.speed_buttons.items():
             if btn == active_btn:
-                btn.bg_color = highlight_color         # Update bg_color so on_release uses this
+                btn.bg_color = highlight_color
                 btn.button_color.rgba = highlight_color
             else:
                 btn.bg_color = normal_color
@@ -715,7 +684,6 @@ class ManualControlScreen(Screen):
         if command in sound_map:
             sound_manager.play_sound(sound_map[command], face_widget=self)
         return self.ws_client.send(command) if self.ws_client else False
-
 
 # ------------------ LoadLuggageScreen ------------------
 class LoadLuggageScreen(Screen):
@@ -754,13 +722,12 @@ class LoadLuggageScreen(Screen):
         return False
 
 # ------------------ QR Code Reader Screen ------------------
-
 class QRScreen(Screen):
     def __init__(self, switch_to_postscan, **kwargs):
         super().__init__(**kwargs)
         self.switch_to_postscan = switch_to_postscan
         self.qr_scanned = False
-        self.capture = None  # Will hold the OpenCV VideoCapture
+        self.capture = None
         
         main_layout = FloatLayout()
         header = HeaderBar(title="Boarding Pass Scanner")
@@ -779,7 +746,6 @@ class QRScreen(Screen):
             self.camera_border_rect = Rectangle(pos=camera_border.pos, size=camera_border.size)
         camera_border.bind(pos=self.update_camera_border, size=self.update_camera_border)
         
-        # Instead of using Kivy's Camera, we just create an Image widget.
         self.image_display = Image()
         camera_border.add_widget(self.image_display)
         camera_container.add_widget(camera_border)
@@ -811,19 +777,15 @@ class QRScreen(Screen):
         main_layout.add_widget(result_card)
         
         self.add_widget(main_layout)
-        # Update texture at 30 FPS
         Clock.schedule_interval(self.update_texture, 1/30)
 
     def on_pre_enter(self):
         self.qr_scanned = False
-        # Open the webcam only when entering the QRScreen.
         self.capture = cv2.VideoCapture(0)
-        # Optionally set resolution; here we use 640x640.
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 640)
 
     def on_leave(self, *args):
-        # Release the webcam when leaving to free resources.
         if self.capture is not None:
             self.capture.release()
             self.capture = None
@@ -840,19 +802,15 @@ class QRScreen(Screen):
         self.result_card_border.rectangle = (instance.x, instance.y, instance.width, instance.height)
 
     def update_texture(self, dt):
-        # If no capture is available or a QR was already scanned, do nothing.
         if self.capture is None or self.qr_scanned:
             return
         ret, frame = self.capture.read()
         if not ret:
             return
         
-        # Rotate the frame by 180 degrees (if needed).
         rotated_frame = cv2.rotate(frame, cv2.ROTATE_180)
-        # Convert the frame from BGR to RGBA for Kivy.
         processed_frame = cv2.cvtColor(rotated_frame, cv2.COLOR_BGR2RGBA)
         
-        # Attempt to decode the QR code from the processed frame.
         results = decode(processed_frame)
         if results and not self.qr_scanned:
             obj = results[0]
@@ -892,7 +850,6 @@ class QRScreen(Screen):
             self.result_label.text = "Please Scan Your Boarding Pass"
             self.result_label.color = THEME_COLORS['text']
         
-        # Create a texture from the processed frame.
         h, w, _ = processed_frame.shape
         new_texture = Texture.create(size=(w, h))
         new_texture.blit_buffer(processed_frame.tobytes(), colorfmt='rgba', bufferfmt='ubyte')
@@ -931,8 +888,6 @@ class QRScreen(Screen):
             self.manager.current = "postscan"
         else:
             print("PostScanScreen not found")
-
-
 
 # ------------------ PostScanScreen ------------------
 class PostScanScreen(Screen):
@@ -995,23 +950,22 @@ class HelpScreen(Screen):
         self.main_layout.add_widget(help_label)
         self.add_widget(self.main_layout)
 
-
 # ------------------ SoundManager ------------------
 class SoundManager:
     def __init__(self):
         pygame.mixer.init()
         self.current_audio = None
         self.audio_files = {
-            'start': ["audio/Hi_Im_SmoothOperator.mp3"],
-            'Connect': ["audio/Connect.mp3"],
-            'Help': ["audio/Help.mp3"],
-            'ManualControl': ["audio/ManualControl.mp3"],
-            'Menu': ["audio/Menu.mp3"],
-            'stop': ["audio/Scan.mp3"],
-            'ScanSuccess': ["audio/ScanSuccess.mp3"],
-            'BEEP': ["audio/BEEPBEEP.mp3"],
-            'Watchout': ["audio/Watchout.mp3"],
-            'Luggage': ["audio/Luggage.mp3"],
+            'start': ["PythonUI/audio/Hi_Im_SmoothOperator.mp3"],
+            'Connect': ["PythonUI/audio/Connect.mp3"],
+            'Help': ["PythonUI/audio/Help.mp3"],
+            'ManualControl': ["PythonUI/audio/ManualControl.mp3"],
+            'Menu': ["PythonUI/audio/Menu.mp3"],
+            'stop': ["PythonUI/audio/Scan.mp3"],
+            'ScanSuccess': ["PythonUI/audio/ScanSuccess.mp3"],
+            'BEEP': ["PythonUI/audio/BEEPBEEP.mp3"],
+            'Watchout': ["PythonUI/audio/Watchout.mp3"],
+            'Luggage': ["PythonUI/audio/Luggage.mp3"],
         }
 
     def play_sound(self, sound_key, face_widget=None):
@@ -1024,15 +978,12 @@ class SoundManager:
                 pygame.mixer.music.play()
                 if face_widget:
                     face_widget.start_mouth_animation()
-                    # Only schedule if not already scheduled
-                    if not hasattr(face_widget, '_mouth_check_event') or face_widget._mouth_check_event is None:
-                        face_widget._mouth_check_event = Clock.schedule_interval(face_widget.check_audio_finished, 0.1)
+                    Clock.schedule_interval(face_widget.check_audio_finished, 0.1)
             except Exception as e:
                 print(f"Error playing sound {sound_file}: {e}")
         else:
             print(f"Invalid sound key: {sound_key}")
 
-# Initialize a global sound manager
 sound_manager = SoundManager()
 
 # ------------------ Main Application ------------------
@@ -1049,7 +1000,6 @@ class SmoothOperatorApp(App):
         connect_screen = ConnectScreen(name="connect")
         load_luggage_screen = LoadLuggageScreen(name="load_luggage")
 
-        # Instantiate FaceScreen and keep a reference to it
         self.face_widget = FaceScreen(self.switch_to_menu)
         face_screen.add_widget(self.face_widget)
 
@@ -1070,10 +1020,8 @@ class SmoothOperatorApp(App):
         self.sm.add_widget(load_luggage_screen)
 
         self.sm.current = "face"
-        # Now pass the actual FaceScreen instance to play_sound
         sound_manager.play_sound('start', face_widget=self.face_widget)
         return self.sm
-
 
     def switch_to_menu(self):
         sound_manager.play_sound('Menu')
@@ -1086,7 +1034,7 @@ class SmoothOperatorApp(App):
         self.sm.current = "manual"
 
     def switch_to_qr(self):
-        sound_manager.play_sound('Scan')
+        sound_manager.play_sound('stop')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "qr"
 
@@ -1115,4 +1063,3 @@ class SmoothOperatorApp(App):
 
 if __name__ == '__main__':
     SmoothOperatorApp().run()
-
