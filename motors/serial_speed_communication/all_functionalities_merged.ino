@@ -1,6 +1,7 @@
 #include "RoboClaw.h"
 #include <SoftwareSerial.h>
 #include <Adafruit_NeoPixel.h>
+#include <NewPing.h>
 
 // L298N Motor Driver Pins
 #define IN1 9
@@ -16,6 +17,15 @@
 // Ultrasonic Sensor Pins
 #define TRIG_PIN 5
 #define ECHO_PIN 6
+
+#define SONAR_NUM 1      // Number of sensors.
+#define MAX_DISTANCE 200 // Maximum distance (in cm) to ping.
+
+NewPing sonar[SONAR_NUM] = {   // Sensor object array.
+  NewPing(TRIG_PIN, ECHO_PIN, MAX_DISTANCE), // Each sensor's trigger pin, echo pin, and max distance to ping.
+};
+
+float sonic_distance;
 
 // NeoPixel Configuration
 #define LED_PIN 11
@@ -107,10 +117,21 @@ void tankDrive(float V, float omega, float W, float &leftSpeed, float &rightSpee
 }
 
 // Lift Control Functions
-void liftUp() { digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW); }
-void liftDown() { digitalWrite(IN1, LOW); digitalWrite(IN2, HIGH); }
-void liftStop() { digitalWrite(IN1, LOW); digitalWrite(IN2, LOW); }
-void setLiftSpeed(float speed) { analogWrite(ENA, speed * 255); }
+void liftUp() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+}
+void liftDown() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+}
+void liftStop() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+}
+void setLiftSpeed(float speed) {
+  analogWrite(ENA, speed * 255);
+}
 
 // Check if String has Exactly 3 Decimal Places
 bool hasThreeDecimalPlaces(String val) {
@@ -120,7 +141,7 @@ bool hasThreeDecimalPlaces(String val) {
 
 void setup() {
   Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial1.begin(115200);
   roboclaw.begin(BAUDRATE);
 
   strip.begin();
@@ -147,30 +168,32 @@ void setup() {
 
 void loop() {
   displayspeed();
-  
+
 
   // Read Sonar Sensor
-//  digitalWrite(TRIG_PIN, LOW);
-//  delayMicroseconds(2);
-//  digitalWrite(TRIG_PIN, HIGH);
-//  delayMicroseconds(10);
-//  digitalWrite(TRIG_PIN, LOW);
-//  int distance = pulseIn(ECHO_PIN, HIGH) * 0.034 / 2;
-//  Serial.println(distance);
+  //  digitalWrite(TRIG_PIN, LOW);
+  //  delayMicroseconds(2);
+  //  digitalWrite(TRIG_PIN, HIGH);
+  //  delayMicroseconds(10);
+  //  digitalWrite(TRIG_PIN, LOW);
+  //  int distance = pulseIn(ECHO_PIN, HIGH) * 0.034 / 2;
+  //  Serial.println(distance);
   //Serial1.println(distance);
 
   // Check for Obstacles
-//  bool obstacleDetected = (distance < DISTANCE_THRESHOLD || 
-//    digitalRead(LEFT_BUMP) || digitalRead(RIGHT_BUMP) || 
-//    digitalRead(FRONT_BUMP) || digitalRead(BACK_BUMP));
-    bool obstacleDetected = (digitalRead(LEFT_BUMP) || digitalRead(RIGHT_BUMP) || 
-    digitalRead(FRONT_BUMP) || digitalRead(BACK_BUMP));
+  //  bool obstacleDetected = (distance < DISTANCE_THRESHOLD ||
+  //    digitalRead(LEFT_BUMP) || digitalRead(RIGHT_BUMP) ||
+  //    digitalRead(FRONT_BUMP) || digitalRead(BACK_BUMP));
+
+  //sonic_distance = sonar[0].ping_cm();
+  bool obstacleDetected = (digitalRead(LEFT_BUMP) || digitalRead(RIGHT_BUMP) ||
+                           digitalRead(FRONT_BUMP) || digitalRead(BACK_BUMP)); // || (sonic_distance < DISTANCE_THRESHOLD));
 
   if (obstacleDetected) {
     roboclaw.SpeedM1(ROBOCLAW_ADDRESS, 0);
     roboclaw.SpeedM2(ROBOCLAW_ADDRESS, 0);
     setLEDs(strip.Color(255, 0, 0));
-  } 
+  }
   else if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
     input.trim();
@@ -203,7 +226,7 @@ void loop() {
         tankDrive(Vx, Vtheta, WHEEL_WIDTH, leftMotorSpeed, rightMotorSpeed);
         roboclaw.SpeedM1(ROBOCLAW_ADDRESS, -mps_to_qpps(leftMotorSpeed));
         roboclaw.SpeedM2(ROBOCLAW_ADDRESS, mps_to_qpps(rightMotorSpeed));
-        if (Vx != 0.000 || Vy != 0.000)
+        if (Vx != 0.000 || Vtheta != 0.000)
         {
           setLEDs(strip.Color(0, 255, 0));
         } else {
