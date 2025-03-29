@@ -256,6 +256,33 @@ app.post('/api/authenticate', (req, res) => {
     }
 });
 
+app.post('/api/QR', (req, res) => {
+    // Destructure the expected fields from the request body.
+    const { name, flight, to, from, dep_time, terminal, gate } = req.body;
+
+    // Basic validation: you can require more fields if needed.
+    if (!name || !flight) {
+        return res.status(400).send({ error: 'Missing required QR details: name and flight are required.' });
+    }
+
+    // Log the received QR data
+    console.log(`Received QR data: 
+    Passenger Name: ${name}, 
+    Flight Number: ${flight}, 
+    From: ${from || 'Unknown'}, 
+    To: ${to || 'Unknown'}, 
+    Departure Time: ${dep_time || 'Unknown'}, 
+    Terminal: ${terminal || 'Unknown'}, 
+    Gate: ${gate || 'Unknown'}`);
+
+    // Optionally: you might forward this data over websockets, store in a database,
+    // or trigger some other action on your robot system.
+
+    // Send back a response confirming receipt.
+    res.status(200).send({ message: 'QR data received successfully.' });
+});
+
+
 // Start HTTP Server
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`HTTP Server running on http://0.0.0.0:${PORT}`);

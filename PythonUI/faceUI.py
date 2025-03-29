@@ -172,6 +172,32 @@ class MouthWidget(Widget):
             self.smile_line1.bezier = points
             self._static_line_set = True
 
+class MouthWidget1(Widget):
+    mouth_open = NumericProperty(0.1)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self.canvas:
+            Color(*THEME_COLORS['primary'])
+            self.smile_line = Line(bezier=[], width=4.0)
+        # Compute the mouth shape once—no bindings for continuous updates.
+        self.update_mouth()
+
+    def update_mouth(self, *args):
+        width, height = self.width, self.height
+        bottom_y = self.y
+        smile_width = 0.9
+        left_x = self.x + width * (1 - smile_width) / 2
+        right_x = self.x + width * (1 + smile_width) / 2
+        smile_height = height * self.mouth_open * 10
+        points = [
+            left_x, bottom_y,
+            left_x + width/4, bottom_y - smile_height,
+            right_x - width/4, bottom_y - smile_height,
+            right_x, bottom_y
+        ]
+        self.smile_line.bezier = points
+
 
 
 # ------------------ FaceScreen ------------------
@@ -210,7 +236,10 @@ class FaceScreen(Widget):
 
         # Mouth widget
         self.mouth_widget = MouthWidget(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
+        self.mouth_widget1 = MouthWidget1(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
+
         self.add_widget(self.mouth_widget)
+        self.add_widget(self.mouth_widget1)
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
 
         # # Schedule random audio announcements
@@ -837,6 +866,21 @@ class QRScreen(Screen):
                 dep_time = ticket_info.get("dep_time", "Unknown Boarding Time")
                 terminal = ticket_info.get("terminal", "Unknown Terminal")
                 gate = ticket_info.get("gate", "Unknown Gate")
+                
+                payload = {
+                    "name": passenger_name,
+                    "flight": flight_number,
+                    "to": destination,
+                    "from": home,
+                    "dep_time": dep_time,
+                    "terminal": terminal,
+                    "gate": gate
+                }
+                try:
+                    response = requests.post(f"{HTTP_SERVER_URL}/api/QR", json=payload, timeout=5)
+                    print("Sent QR data:", response.text)
+                except Exception as e:
+                    print("Error sending QR data:", e)
                 self.flash_green_and_transition(passenger_name, flight_number, home, destination, dep_time, terminal, gate)
             except json.JSONDecodeError:
                 self.result_label.text = "Invalid QR format. Please try again."
