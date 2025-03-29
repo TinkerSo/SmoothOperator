@@ -257,31 +257,31 @@ app.post('/api/authenticate', (req, res) => {
     }
 });
 
-app.post('/api/QR', (req, res) => {
-    // Destructure the expected fields from the request body.
-    const { name, flight, to, from, dep_time, terminal, gate } = req.body;
+// app.post('/api/QR', (req, res) => {
+//     // Destructure the expected fields from the request body.
+//     const { name, flight, to, from, dep_time, terminal, gate } = req.body;
 
-    // Basic validation: you can require more fields if needed.
-    if (!name || !flight) {
-        return res.status(400).send({ error: 'Missing required QR details: name and flight are required.' });
-    }
+//     // Basic validation: you can require more fields if needed.
+//     if (!name || !flight) {
+//         return res.status(400).send({ error: 'Missing required QR details: name and flight are required.' });
+//     }
 
-    // Log the received QR data
-    console.log(`Received QR data: 
-    Passenger Name: ${name}, 
-    Flight Number: ${flight}, 
-    From: ${from || 'Unknown'}, 
-    To: ${to || 'Unknown'}, 
-    Departure Time: ${dep_time || 'Unknown'}, 
-    Terminal: ${terminal || 'Unknown'}, 
-    Gate: ${gate || 'Unknown'}`);
+//     // Log the received QR data
+//     console.log(`Received QR data: 
+//     Passenger Name: ${name}, 
+//     Flight Number: ${flight}, 
+//     From: ${from || 'Unknown'}, 
+//     To: ${to || 'Unknown'}, 
+//     Departure Time: ${dep_time || 'Unknown'}, 
+//     Terminal: ${terminal || 'Unknown'}, 
+//     Gate: ${gate || 'Unknown'}`);
 
-    // Optionally: you might forward this data over websockets, store in a database,
-    // or trigger some other action on your robot system.
+//     // Optionally: you might forward this data over websockets, store in a database,
+//     // or trigger some other action on your robot system.
 
-    // Send back a response confirming receipt.
-    res.status(200).send({ message: 'QR data received successfully.' });
-});
+//     // Send back a response confirming receipt.
+//     res.status(200).send({ message: 'QR data received successfully.' });
+// });
 
 // app.post('/api/QR', (req, res) => {
 //     const { name, flight, to, from, dep_time, terminal, gate } = req.body;
@@ -335,6 +335,37 @@ app.post('/api/QR', (req, res) => {
 //     // If you want to respond immediately instead of waiting:
 //     // res.status(200).send({ message: 'QR received. Robot is navigating.', terminal, gate });
 // });
+
+// need to port forward to 8000 on jetson 
+const axios = require('axios');
+
+app.post('/api/QR', async (req, res) => {
+    const { name, flight, to, from, dep_time, terminal, gate } = req.body;
+
+    if (!name || !flight || !terminal || !gate) {
+        return res.status(400).send({ error: 'Missing required QR fields' });
+    }
+
+    console.log(`Received QR data:
+    Name: ${name}, Flight: ${flight}, Terminal: ${terminal}, Gate: ${gate}`);
+
+    // Forward QR to route_manager ROS node
+    try {
+        const rosRes = await axios.post('http://localhost:8000/api/QR', {
+            terminal,
+            gate
+        });
+
+        console.log('Forwarded to ROS successfully:', rosRes.data);
+        res.status(200).send({
+            message: 'QR data forwarded to robot',
+            ros_response: rosRes.data
+        });
+    } catch (err) {
+        console.error('Error forwarding to ROS:', err.message);
+        res.status(500).send({ error: 'Failed to forward to robot' });
+    }
+});
 
 
 
