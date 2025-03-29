@@ -338,7 +338,6 @@ app.post('/api/authenticate', (req, res) => {
 // });
 
 // need to port forward to 8000 on jetson 
-const axios = require('axios');
 
 app.post('/api/QR', async (req, res) => {
     const { name, flight, to, from, dep_time, terminal, gate } = req.body;
