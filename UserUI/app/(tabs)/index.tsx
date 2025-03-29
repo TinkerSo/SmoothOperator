@@ -232,6 +232,24 @@ export default function GamepadWithAuth() {
       <TouchableOpacity style={styles.stopButton} onPress={() => sendCommand('x')}>
         <Text style={styles.buttonText}>🛑 Stop</Text>
       </TouchableOpacity>
+
+      {/* --------------------- Lift Controls --------------------- */}
+      <View style={styles.liftContainer}>
+        <TouchableOpacity
+          style={styles.liftButton}
+          onPressIn={() => sendCommand('+')}
+          onPressOut={() => sendCommand('=')}
+        >
+          <Text style={styles.liftButtonText}>Lift Up</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.liftButton}
+          onPressIn={() => sendCommand('-')}
+          onPressOut={() => sendCommand('=')}
+        >
+          <Text style={styles.liftButtonText}>Lift Down</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -308,6 +326,25 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 24,
     color: 'white',
+    fontWeight: 'bold',
+  },
+  // Lift controls container
+  liftContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 30,
+    width: '100%',
+  },
+  liftButton: {
+    backgroundColor: '#8e44ad',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+  liftButtonText: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
   // Passcode screen styles

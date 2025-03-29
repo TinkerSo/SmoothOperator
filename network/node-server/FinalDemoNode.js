@@ -171,6 +171,22 @@ app.post('/api/ros', (req, res) => {
         console.log(`Capping Vtheta from ${Vtheta} to 0.150`);
         Vtheta = 0.150;
     }
+    const cappedCommand = `${Vx.toFixed(3)} ${Vy.toFixed(3)} ${Vtheta.toFixed(3)} ${lift.toFixed(3)}`;
+    console.log(`Received from ROS: ${data}`);
+    console.log(`Sending to Arduino: ${cappedCommand}`);
+
+    arduinoPort.write(`${cappedCommand}\n`, 'utf8', (err) => {
+        if (err) {
+            console.error(`Error writing to Arduino: ${err}`);
+            return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
+        }
+
+        // Use drain() to ensure the serial command is fully sent
+        arduinoPort.drain(() => {
+            console.log(`Drain complete for ROS command: ${cappedCommand}`);
+            res.status(200).send({ message: 'ROS command sent successfully' });
+        });
+    });
 
     // ------------------ Binning Logic ------------------
     // Determine the discrete command by comparing Vx and Vtheta.
@@ -202,26 +218,6 @@ app.post('/api/ros', (req, res) => {
             client.send(command);
         }
     });
-
-    // Optionally, forward the corresponding vCommand to the Arduino (flipping for the physical robot)
-    const vCommand = getVCommand(command);
-    if (!vCommand) {
-        console.error(`Invalid discrete command: ${command}`);
-        return res.status(500).send({ error: 'Invalid discrete command generated' });
-    }
-    setTimeout(() => {
-        arduinoPort.write(`${vCommand}\n`, 'utf8', (err) => {
-            if (err) {
-                console.error(`Error writing to Arduino: ${err}`);
-                return res.status(500).send({ error: 'Failed to send command to Arduino' });
-            }
-            // Use drain() to ensure the serial command is fully sent
-            arduinoPort.drain(() => {
-                console.log(`Forwarded binned command to Arduino (after 50ms delay): ${vCommand}`);
-                res.status(200).send({ message: 'ROS command binned and sent successfully', command });
-            });
-        });
-    }, 50);
 });
 
 // Global variable to store the current passcode
@@ -298,7 +294,7 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (message) => {
         const trimmedMessage = message.toString().trim();
-        
+
         // If the message is "AUTH_SUCCESS", broadcast it.
         if (trimmedMessage === 'AUTH_SUCCESS') {
             console.log("Received AUTH_SUCCESS. Broadcasting to all clients...");
