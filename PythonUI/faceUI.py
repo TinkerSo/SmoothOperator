@@ -236,10 +236,10 @@ class FaceScreen(Widget):
 
         # Mouth widget
         self.mouth_widget = MouthWidget(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
-        self.mouth_widget1 = MouthWidget1(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
+        # self.mouth_widget1 = MouthWidget1(size_hint=(None, None), size=(self.eye_size[0] * 0.8, 30))
 
         self.add_widget(self.mouth_widget)
-        self.add_widget(self.mouth_widget1)
+        # self.add_widget(self.mouth_widget1)
         self.bind(pos=self.update_mouth_position, size=self.update_mouth_position)
 
         # # Schedule random audio announcements
@@ -378,8 +378,7 @@ class FaceScreen(Widget):
             'w': 'Watchout',
             's': 'Watchout',
             'a': 'Watchout',
-            'd': 'Watchout',
-            'x': 'Watchout'
+            'd': 'Watchout'
         }
         if command in sound_map:
             sound_manager.play_sound(sound_map[command], face_widget=self)
@@ -1002,16 +1001,16 @@ class SoundManager:
         pygame.mixer.init()
         self.current_audio = None
         self.audio_files = {
-            'start': ["PythonUI/audio/Hi_Im_SmoothOperator.mp3"],
-            'Connect': ["PythonUI/audio/Connect.mp3"],
-            'Help': ["PythonUI/audio/Help.mp3"],
-            'ManualControl': ["PythonUI/audio/ManualControl.mp3"],
-            'Menu': ["PythonUI/audio/Menu.mp3"],
-            'stop': ["PythonUI/audio/Scan.mp3"],
-            'ScanSuccess': ["PythonUI/audio/ScanSuccess.mp3"],
-            'BEEP': ["PythonUI/audio/BEEPBEEP.mp3"],
-            'Watchout': ["PythonUI/audio/Watchout.mp3"],
-            'Luggage': ["PythonUI/audio/Luggage.mp3"],
+            'start': ["audio/Hi_Im_SmoothOperator.mp3"],
+            'Connect': ["audio/Connect.mp3"],
+            'Help': ["audio/Help.mp3"],
+            'ManualControl': ["audio/ManualControl.mp3"],
+            'Menu': ["audio/Menu.mp3"],
+            'stop': ["audio/Scan.mp3"],
+            'ScanSuccess': ["audio/ScanSuccess.mp3"],
+            'BEEP': ["audio/BEEPBEEP.mp3"],
+            'Watchout': ["audio/Watchout.mp3"],
+            'Luggage': ["audio/Luggage.mp3"],
         }
 
     def play_sound(self, sound_key, face_widget=None):
