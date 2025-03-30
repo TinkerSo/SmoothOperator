@@ -1102,9 +1102,9 @@ class SmoothOperatorApp(App):
 
 
         self.sm.current = "face"
-        if self.sm.current == "face":
-            # Play the start sound when the app starts
-            Clock.schedule_interval(lambda dt: sound_manager.play_sound('start', face_widget=self.face_widget), 7)
+        # if self.sm.current == "face":
+        #     # Play the start sound when the app starts
+        #     Clock.schedule_interval(lambda dt: sound_manager.play_sound('start', face_widget=self.face_widget), 7)
 
         return self.sm
 
