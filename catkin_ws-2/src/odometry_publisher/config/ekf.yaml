@@ -1,0 +1,27 @@
+frequency: 30
+
+# Subscribe to odometry from wheel encoders
+odom0: /odom
+odom0_config: [true,  true,  false,
+               false, false, true,
+               true,  false, false,
+               false, false, false,
+               false, false, false]
+
+# Subscribe to IMU angular velocity
+imu0: /imu/data
+imu0_config: [false, false, false,
+              false, false, true,
+              false, false, false,
+              false, false, false,
+              false, false, false]
+
+imu0_differential: true
+
+# Frame settings
+odom_frame: odom
+base_link_frame: base_link
+world_frame: odom
+
+# Output fused odometry to /odometry/filtered
+

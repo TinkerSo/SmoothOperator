@@ -1,0 +1,25 @@
+<launch>
+
+   <master auto="start"/>
+ <!-- Run the map server --> 
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find map_server)/maps/lab.yaml"/>
+
+ <!-- Run AMCL --> 
+    <include file="$(find amcl)/examples/amcl_diff.launch"/>
+
+   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find smoothoperator)/config/costmap_common_params.yaml" command="load" ns="global_costmap"/> 
+    <rosparam file="$(find smoothoperator)/config/costmap_common_params.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find smoothoperator)/config/local_costmap_params.yaml" command="load"/>
+    <rosparam file="$(find smoothoperator)/config/global_costmap_params.yaml" command="load"/> 
+    <rosparam file="$(find smoothoperator)/config/base_local_planner_params.yaml" command="load"/>
+ 
+    <param name="global_frame" value="map"/>
+    <param name="robot_base_frame" value="base_link"/>
+    <param name="odom_frame" value="odom"/>
+    <param name="transform_tolerance" value="0.3" />
+    <param name="controller_frequency" value="4" />
+</node>
+
+</launch>
+

@@ -1,0 +1,8 @@
+prefix=/home/smoothoperator/catkin_ws/devel
+
+Name: odometry_fusion_publisher
+Description: Description of odometry_fusion_publisher
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

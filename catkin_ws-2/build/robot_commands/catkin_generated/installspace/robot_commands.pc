@@ -1,0 +1,8 @@
+prefix=/home/smoothoperator/catkin_ws/install
+
+Name: robot_commands
+Description: Description of robot_commands
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: rospy std_msgs geometry_msgs

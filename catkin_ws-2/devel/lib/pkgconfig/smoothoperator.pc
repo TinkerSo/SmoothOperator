@@ -1,0 +1,8 @@
+prefix=/home/smoothoperator/catkin_ws/devel
+
+Name: smoothoperator
+Description: Description of smoothoperator
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

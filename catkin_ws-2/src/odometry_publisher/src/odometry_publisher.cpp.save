@@ -1,0 +1,92 @@
+#include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
+#include <nav_msgs/Odometry.h>
+#include <sensor_msgs/Imu.h>
+#include <cmath>
+
+int ax = 0.0, ay = 0.0; // Linear accelerations
+double vth = 0.0; // Angular velocity
+double vx = 0.0, vy = 0.0; // Velocities
+double x = 0.0, y = 0.0, th = 0.0; // Positions
+
+ros::Time last_time; // Time tracking for integration
+
+// Callback function to update acceleration and angular velocity from IMU data
+void imuCallback(const sensor_msgs::Imu::ConstPtr& msg) {
+    // Floor the results to ignore readings below 1 when stationary
+    if (msg->linear_acceleration.x < 0) {
+      ax = std::floor(std::abs(msg->linear_acceleration.x * 9.81)) * -1;
+    }
+    else {
+      
+    }
+    ax = std::floor(msg->linear_acceleration.x * 9.81); // Convert g's to m/s^2
+    ay = std::floor(msg->linear_acceleration.y * 9.81);
+    vth = std::floor(msg->angular_velocity.z);
+}
+
+int main(int argc, char** argv) {
+    ros::init(argc, argv, "odometry_publisher");
+    ros::NodeHandle n;
+
+    ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
+    tf::TransformBroadcaster odom_broadcaster;
+
+    ros::Subscriber imu_sub = n.subscribe("/imu/data", 10, imuCallback);
+
+    last_time = ros::Time::now(); // Initialize time
+ 
+    ros::Rate r(10.0); // 10 Hz loop
+
+    while (ros::ok()) {
+        ros::spinOnce();
+        ros::Time current_time = ros::Time::now();
+
+        double dt = (current_time - last_time).toSec();
+	last_time = current_time;
+
+	// Integrate acceleration to get velocity
+	vx = ax * dt;
+	vy = ay * dt;
+
+	// Compute displacement using velocity
+	double delta_x = vx * dt;
+	double delta_y = vy * dt;
+	double delta_th = vth * dt;
+
+        x += delta_x;
+        y += delta_y;
+        th += delta_th;
+
+        geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
+
+        // Publish transform (odom -> base_link)
+        geometry_msgs::TransformStamped odom_trans;
+        odom_trans.header.stamp = current_time;
+        odom_trans.header.frame_id = "odom";
+        odom_trans.child_frame_id = "base_link";
+        odom_trans.transform.translation.x = x;
+        odom_trans.transform.translation.y = y;
+        odom_trans.transform.translation.z = 0.0;
+        odom_trans.transform.rotation = odom_quat;
+        odom_broadcaster.sendTransform(odom_trans);
+
+        // Publish odometry message
+        nav_msgs::Odometry odom;
+        odom.header.stamp = current_time;
+        odom.header.frame_id = "odom";
+        odom.pose.pose.position.x = x;
+        odom.pose.pose.position.y = y;
+        odom.pose.pose.position.z = 0.0;
+        odom.pose.pose.orientation = odom_quat;
+        odom.child_frame_id = "base_link";
+        odom.twist.twist.linear.x = vx;
+        odom.twist.twist.linear.y = vy;
+        odom.twist.twist.angular.z = vth;
+        odom_pub.publish(odom);
+
+        last_time = current_time;
+        r.sleep();
+    }
+}
+

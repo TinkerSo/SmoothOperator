@@ -1,0 +1,11 @@
+<launch>
+
+        <!-- Static transform from base_link to base_laser -->
+    <node pkg="tf" type="static_transform_publisher" name="imu_tf" args="0 0 1.225 0 0 0 base_link imu_link 100"/>
+
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_filter_node" clear_params="true" output="screen">
+        <rosparam command="load" file="$(find odometry_publisher)/config/ekf.yaml"/>
+        <remap from="/odometry/filtered" to="/odom_combined"/>
+    </node>
+</launch>
+

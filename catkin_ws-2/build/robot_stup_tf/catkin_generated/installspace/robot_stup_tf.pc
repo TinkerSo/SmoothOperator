@@ -1,0 +1,8 @@
+prefix=/home/smoothoperator/catkin_ws/install
+
+Name: robot_stup_tf
+Description: Description of robot_stup_tf
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
