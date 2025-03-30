@@ -361,8 +361,8 @@ class FaceScreen(Widget):
             self.movement_active = True
             if not self.movement_sound_event:
                 self.movement_sound_event = Clock.schedule_interval(self.play_movement_sound, 5.0)
-            movement_x = 200
-            movement_y = 200
+            movement_x = 150
+            movement_y = 50
             if command == 'w':
                 self.eye_offset_y = movement_y
             elif command == 's':
@@ -406,7 +406,7 @@ class GoalReachedScreen(Screen):
         
         # The question to prompt the user
         self.question_label = Label(
-            text="Gate reached!\nSmoothOperator has brought your luggage to your gate. Are you done using SmoothOperator?",
+            text="Gate reached!\nSmoothOperator has brought your luggage to your gate.\nAre you done using SmoothOperator?",
             markup=True, font_size=50,
             color=THEME_COLORS['text'], halign='center', valign='middle',
             pos_hint={'center_x': 0.5, 'center_y': 0.65}
