@@ -157,7 +157,7 @@ function getVCommand(command) {
 // corresponding vCommand (using getVCommand) to the Arduino after a short delay.
 app.post('/api/ros', (req, res) => {
     const data = req.body.trim();
-    if (data === "Goal Reached") {
+    if (req === "Goal Reached") {
         wss.clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(data);
