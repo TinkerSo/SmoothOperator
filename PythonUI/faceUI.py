@@ -48,10 +48,10 @@ Window.size = (1920, 1080)
 Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
-# SERVER_IP = "10.192.31.229"  # BU Guest
+SERVER_IP = "10.192.31.229"  # BU Guest
 # SERVER_IP = "128.197.53.43" # Ethernet
 # SERVER_IP = 192.168.1.5 # Netgear
-SERVER_IP = "10.193.24.226" #  BU Guest Changed on SmoothOperator2 somehow
+# SERVER_IP = "10.193.24.226" #  BU Guest Changed on SmoothOperator2 somehow
 
 SERVER_PORT = 3000
 WS_SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
@@ -1034,7 +1034,7 @@ class SoundManager:
         pygame.mixer.init()
         self.current_audio = None
         self.audio_files = {
-            'start': ["PythonUI/audio/Hi_Im_SmoothOperator.mp3"],
+            'start': ["audio/Hi_Im_SmoothOperator.mp3"],
             'Connect': ["audio/Connect.mp3"],
             'Help': ["audio/Help.mp3"],
             'ManualControl': ["audio/ManualControl.mp3"],
@@ -1102,7 +1102,9 @@ class SmoothOperatorApp(App):
 
 
         self.sm.current = "face"
-        Clock.schedule_interval(lambda dt: sound_manager.play_sound('start', face_widget=self.face_widget), 7)
+        if self.sm.current == "face":
+            # Play the start sound when the app starts
+            Clock.schedule_interval(lambda dt: sound_manager.play_sound('start', face_widget=self.face_widget), 7)
 
         return self.sm
 
