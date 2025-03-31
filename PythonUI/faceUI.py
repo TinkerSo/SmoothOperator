@@ -18,7 +18,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.image import Image
 from kivy.uix.widget import Widget
-from kivy.graphics import Ellipse, Color, Rectangle, Line, RoundedRectangle
+from kivy.graphics import Ellipse, Color, Rectangle, Line, RoundedRectangle, Triangle
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.camera import Camera
@@ -211,6 +211,37 @@ class MouthWidget1(Widget):
             right_x, bottom_y
         ]
         self.smile_line.bezier = points
+
+class DownArrowWidget(Widget):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self.canvas:
+            # Set the arrow color (adjust as desired)
+            Color(*THEME_COLORS['primary'])
+            # Use a rectangle for the shaft and a triangle for the arrowhead
+            self.shaft_rect = Rectangle(pos=(0, 0), size=(0, 0))
+            self.arrow_head = Triangle(points=[])
+        self.bind(pos=self.update_arrow, size=self.update_arrow)
+
+    def update_arrow(self, *args):
+        center_x = self.center_x
+        center_y = self.center_y
+
+        # Shaft dimensions: 40% of widget height and 30% of widget width for thickness
+        shaft_length = self.height * 0.4
+        shaft_width = self.width * 0.3
+        shaft_x = center_x - shaft_width / 2
+        shaft_y = center_y - shaft_length
+        self.shaft_rect.pos = (shaft_x, shaft_y)
+        self.shaft_rect.size = (shaft_width, shaft_length)
+
+        # Arrowhead dimensions: 90% of widget width and 30% of widget height
+        head_width = self.width * 0.9
+        head_height = self.height * 0.3
+        left_x = center_x - head_width / 2
+        right_x = center_x + head_width / 2
+        tip_y = shaft_y - head_height
+        self.arrow_head.points = [left_x, shaft_y, right_x, shaft_y, center_x, tip_y]
 
 # ------------------ FaceScreen ------------------
 class FaceScreen(Widget):
@@ -877,6 +908,11 @@ class QRScreen(Screen):
         
         self.add_widget(main_layout)
         Clock.schedule_interval(self.update_texture, 1/30)
+        # Add the DownArrowWidget.
+        # Adjust the size and pos_hint to position it where you need.
+        self.down_arrow = DownArrowWidget(size_hint=(None, None), size=(100, 100))
+        self.down_arrow.pos_hint = {'center_x': 0.5, 'y': 0.15}  # Adjust 'y' if needed
+        self.add_widget(self.down_arrow)
 
     def on_pre_enter(self):
         self.qr_scanned = False
