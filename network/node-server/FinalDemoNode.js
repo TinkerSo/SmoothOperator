@@ -57,10 +57,16 @@ let currentSpeed = 'L';
 
 // Define base command templates with a placeholder for speed
 const baseCommands = {
-    w: "-{speed} 0.000 0.000 0.000",
-    s: "{speed} 0.000 0.000 0.000",
-    a: "0.000 0.000 -{speed} 0.000",
-    d: "0.000 0.000 {speed} 0.000",
+    // Onboard movement commands 
+    w: "-{speed} 1.000 0.000 0.000", 
+    s: "{speed} 1.000 0.000 0.000",
+    a: "0.000 1.000 -{speed} 0.000",
+    d: "0.000 1.000 {speed} 0.000",
+    // Remote Movement Commsnds
+    wr: "-{speed} 0.000 0.000 0.000",
+    sr: "{speed} 0.000 0.000 0.000",
+    ar: "0.000 0.000 -{speed} 0.000",
+    dr: "0.000 0.000 {speed} 0.000",
     x: "0.000 0.000 0.000 0.000",
     '+': "0.000 0.000 0.000 1.000",
     '-': "0.000 0.000 0.000 -1.000",

@@ -225,7 +225,7 @@ export default function GamepadWithAuth() {
           <View style={styles.controlsContainer}>
             <TouchableOpacity
               style={styles.button}
-              onPressIn={() => handlePressIn('w')}
+              onPressIn={() => handlePressIn('wr')}
               onPressOut={handlePressOut}
             >
               <Text style={styles.directionText}>FORWARD</Text>
@@ -233,7 +233,7 @@ export default function GamepadWithAuth() {
             <View style={styles.row}>
               <TouchableOpacity
                 style={styles.button}
-                onPressIn={() => handlePressIn('a')}
+                onPressIn={() => handlePressIn('ar')}
                 onPressOut={handlePressOut}
               >
                 <Text style={styles.directionText}>LEFT</Text>
@@ -241,7 +241,7 @@ export default function GamepadWithAuth() {
               <View style={styles.spacer} />
               <TouchableOpacity
                 style={styles.button}
-                onPressIn={() => handlePressIn('d')}
+                onPressIn={() => handlePressIn('dr')}
                 onPressOut={handlePressOut}
               >
                 <Text style={styles.directionText}>RIGHT</Text>
@@ -249,7 +249,7 @@ export default function GamepadWithAuth() {
             </View>
             <TouchableOpacity
               style={styles.button}
-              onPressIn={() => handlePressIn('s')}
+              onPressIn={() => handlePressIn('sr')}
               onPressOut={handlePressOut}
             >
               <Text style={styles.directionText}>BACK</Text>
