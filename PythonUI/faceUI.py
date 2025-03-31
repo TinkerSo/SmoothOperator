@@ -48,10 +48,10 @@ Window.size = (1920, 1080)
 Window.clearcolor = THEME_COLORS['background']
 
 # Global Server Configuration
-SERVER_IP = "10.192.31.229"  # BU Guest
+# SERVER_IP = "10.192.31.229"  # BU Guest
 # SERVER_IP = "128.197.53.43" # Ethernet
 # SERVER_IP = 192.168.1.5 # Netgear
-# SERVER_IP = "10.193.24.226" #  BU Guest Changed on SmoothOperator2 somehow
+SERVER_IP = "10.193.24.226" #  BU Guest Changed on SmoothOperator2 somehow
 
 SERVER_PORT = 3000
 WS_SERVER_URL = f"ws://{SERVER_IP}:{SERVER_PORT}"
@@ -771,7 +771,7 @@ class ManualControlScreen(Screen):
         )
         threading.Thread(target=self.ws.run_forever, daemon=True).start()
 
-    def on_ws_message(self, ws, message):
+    def on_ws_message(self, message):
         print("ManualControlScreen received WebSocket message:", message)
         msg = message.strip()
         if msg in ['L', 'M', 'H']:
@@ -780,8 +780,8 @@ class ManualControlScreen(Screen):
             if button_label and button_label in self.speed_buttons:
                 btn = self.speed_buttons[button_label]
                 print(f"Updating active speed button to: {button_label}")
+                # Schedule UI update on the main thread
                 Clock.schedule_once(lambda dt: self.set_active_speed(btn), 0)
-
 
 # ------------------ LoadLuggageScreen ------------------
 class LoadLuggageScreen(Screen):
