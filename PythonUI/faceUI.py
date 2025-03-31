@@ -388,19 +388,19 @@ class FaceScreen(Widget):
         print("FaceScreen remote WS opened")
 
     def process_remote_command(self, command):
-        if command in ['wr', 'ar', 'sr', 'dr']:
+        if command in ['wr', 'ar', 'sr', 'dr', 'w', 'a', 's', 'd']:
             self.movement_active = True
             if not self.movement_sound_event:
                 self.movement_sound_event = Clock.schedule_interval(self.play_movement_sound, 5.0)
             movement_x = 150
             movement_y = 50
-            if command == 'wr':
+            if command == 'wr' or command == 'w':
                 self.eye_offset_y = movement_y
-            elif command == 'sr':
+            elif command == 'sr' or command == 's':
                 self.eye_offset_y = -movement_y
-            elif command == 'ar':
+            elif command == 'ar' or command == 'a':
                 self.eye_offset_x = -movement_x
-            elif command == 'dr':
+            elif command == 'dr' or command == 'd':
                 self.eye_offset_x = movement_x
             self.update_positions()
             self.update_mouth_position()
