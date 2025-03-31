@@ -1,85 +1,105 @@
 #include "RoboClaw.h"
 #include <SoftwareSerial.h>
 #include <Adafruit_NeoPixel.h>
+#include <NewPing.h>
+
+// L298N Motor Driver Pins
+#define IN1 9
+#define IN2 8
+#define ENA 7
+
+// Bumper Switch Pins
+#define FRONT_BUMP 50
+#define BACK_BUMP 44
+#define LEFT_BUMP 38
+#define RIGHT_BUMP 32
+
+#define ULTRASONIC 5
+
+// Ultrasonic Sensor Pins
+#define TRIG_PIN 5
+#define ECHO_PIN 6
+
+#define SONAR_NUM 1      // Number of sensors.
+#define MAX_DISTANCE 200 // Maximum distance (in cm) to ping.
+
+NewPing sonar[SONAR_NUM] = {   // Sensor object array.
+  NewPing(TRIG_PIN, ECHO_PIN, MAX_DISTANCE), // Each sensor's trigger pin, echo pin, and max distance to ping.
+};
+
+float sonic_distance;
 
 // NeoPixel Configuration
-#define LED_PIN    6   
-#define LED_COUNT  300  
+#define LED_PIN 11
+#define LED_COUNT 300
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // RoboClaw Configuration
-SoftwareSerial softwareSerial(10, 11); 
-#define address 0x80
-#define baudrate 38400
+SoftwareSerial softwareSerial(12, 13);
+#define ROBOCLAW_ADDRESS 0x80
+#define BAUDRATE 38400
 RoboClaw roboclaw(&softwareSerial, 10000);
 
-// Velocity PID coefficients
-#define Kp 0.3
-#define Ki 0.5
+// PID Coefficients
+#define Kp 0.1
+#define Ki 0.1
 #define Kd 0.25
-#define qpps 44000
+#define QPPS 47711
 
-int motorSpeed = 2000;  // Default speed, Need to tune for m/s
-char command;             // Stores user input
+// Wheel & Encoder Constants
+#define WHEEL_DIAMETER 0.1016
+#define WHEEL_CIRCUMFERENCE (3.14159265358979 * WHEEL_DIAMETER)
+#define COUNTS_PER_REV 8192
 
-float leftMotorSpeed, rightMotorSpeed;
-float wheel_width = 0.5334; // in meters
-
-// Ultrasonic Sensor Pin (using only A0)
-// #define SONAR_PIN A0
+// Sonar Sensor Pin
 #define SONAR_PIN1 A0
-int sensorValue1;
-float Inch1=0.00;
-float cm1=0.00;
 
+// Motion Variables
+int motorSpeed = 2000;
+float leftMotorSpeed, rightMotorSpeed;
+const float WHEEL_WIDTH = 0.5334;
+const float DISTANCE_THRESHOLD = 40.0;
 
-float threshold = 20.0; // Threshold distance in cm
-float cmDistance = 0.0;
-float conversionFactor = 0.497 * 2.54; // approximately 1.259
+bool gui_command = true;
 
-// Define LED Variable color
-int led_color[3];
+String sonic_input;
 
+// LED State
+int led_color[3] = {255, 0, 0};
 
-
-// Set LEDs
+// Function to Set LEDs
 void setLEDs(uint32_t color) {
   strip.fill(color);
   strip.show();
 }
 
-// Convert encoder reading to displacement in meters
+// Convert Encoder Reading to Distance
 double convertReadingToDistance(int32_t reading) {
-  return ((2.0 * 3.14159265358979 * (0.1016 / 2.0)) / 8192.0) * reading;
+  return ((2.0 * 3.14159265358979 * (WHEEL_DIAMETER / 2.0)) / COUNTS_PER_REV) * reading;
 }
 
-// Convert speed reading to velocity in meters per second
+// Convert Encoder Reading to Velocity
 double convertReadingToVelocity(int32_t reading) {
-  return (((double)reading / 8192.0) * 60.0 * 2.0 * 3.14159265358979 * 0.1016) / 60.0;
+  return ((double)reading / COUNTS_PER_REV) * (3.14159265358979 * WHEEL_DIAMETER);
 }
 
-// Send right and left displacement & velocity data
-void sendData(double right_displacement, double right_velocity, double left_displacement, double left_velocity) {
-  Serial.print("Right Displacement:");
-  Serial.print(right_displacement, 6);
-  Serial.print(",Right Velocity:");
-  Serial.print(right_velocity, 6);
-  Serial.print(",Left Displacement:");
-  Serial.print(left_displacement, 6);
-  Serial.print(",Left Velocity:");
-  Serial.println(left_velocity, 6);
+// Send Data Over Serial
+void sendData(double right_displacement, double left_displacement, double right_velocity, double left_velocity) {
+  Serial1.print("Right Displacement: "); Serial1.print(right_displacement, 6);
+  Serial1.print(", Left Displacement: "); Serial1.print(left_displacement, 6);
+  Serial1.print(", Right Velocity: "); Serial1.print(right_velocity, 6);
+  Serial1.print(", Left Velocity: "); Serial1.println(left_velocity, 6);
 }
 
-
-// Display encoder and speed for both motors
+// Display Speed from Encoders
 void displayspeed() {
-  uint8_t status1, status2;
+  uint8_t status;
   bool valid1, valid2, valid3, valid4;
-  
-  int32_t enc_right = roboclaw.ReadEncM1(address, &status1, &valid1);
-  int32_t speed_right = roboclaw.ReadSpeedM1(address, &status2, &valid2);
-  int32_t enc_left = roboclaw.ReadEncM2(address, &status1, &valid3);
-  int32_t speed_left = roboclaw.ReadSpeedM2(address, &status2, &valid4);
+
+  int32_t enc_right = roboclaw.ReadEncM1(ROBOCLAW_ADDRESS, &status, &valid1);
+  int32_t speed_right = roboclaw.ReadSpeedM1(ROBOCLAW_ADDRESS, &status, &valid2);
+  int32_t enc_left = roboclaw.ReadEncM2(ROBOCLAW_ADDRESS, &status, &valid3);
+  int32_t speed_left = roboclaw.ReadSpeedM2(ROBOCLAW_ADDRESS, &status, &valid4);
 
   double right_displacement = valid1 ? convertReadingToDistance(enc_right) : 0;
   double right_velocity = valid2 ? convertReadingToVelocity(speed_right) : 0;
@@ -87,142 +107,137 @@ void displayspeed() {
   double left_velocity = valid4 ? convertReadingToVelocity(speed_left) : 0;
 
   if ((valid1 && valid2) || (valid3 && valid4)) {
-    sendData(right_displacement, right_velocity, left_displacement, left_velocity);
+    sendData(-right_displacement, left_displacement, -right_velocity, left_velocity);
   }
 }
 
-// Function to convert linear velocity (V) and angular velocity (omega) 
-// into left and right wheel speeds for a tank drive system
+// Convert Meters Per Second to QPPS
+int mps_to_qpps(double speed_mps) {
+  return (int)((speed_mps / WHEEL_CIRCUMFERENCE) * COUNTS_PER_REV);
+}
+
+// Tank Drive Calculation
 void tankDrive(float V, float omega, float W, float &leftSpeed, float &rightSpeed) {
-    leftSpeed = V - (omega * W / 2);
-    rightSpeed = V + (omega * W / 2);
+  leftSpeed = V + (omega * W / 2);
+  rightSpeed = V - (omega * W / 2);
+}
+
+// Lift Control Functions
+void liftUp() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+}
+void liftDown() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+}
+void liftStop() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+}
+void setLiftSpeed(float speed) {
+  analogWrite(ENA, speed * 255);
+}
+
+// Check if String has Exactly 3 Decimal Places
+bool hasThreeDecimalPlaces(String val) {
+  int dotIndex = val.indexOf('.');
+  return (dotIndex != -1 && (val.length() - dotIndex - 1) == 3);
 }
 
 void setup() {
-  Serial.begin(115200);
-  roboclaw.begin(38400);
-  delay(100);
-  
-  while (!Serial) {}  
-  // Initialize NeoPixels
+  Serial.begin(9600);
+  Serial1.begin(115200); //Encoders
+  roboclaw.begin(BAUDRATE);
+
   strip.begin();
   strip.show();
   strip.setBrightness(80);
-  setLEDs(strip.Color(255, 0, 0)); 
-  pinMode(SONAR_PIN1,INPUT);
-  float Inch1=0.00;
-  float cm1=0.00;
+  setLEDs(strip.Color(255, 0, 0));
 
-  
+  pinMode(SONAR_PIN1, INPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(FRONT_BUMP, INPUT);
+  pinMode(BACK_BUMP, INPUT);
+  pinMode(LEFT_BUMP, INPUT);
+  pinMode(RIGHT_BUMP, INPUT);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
   Serial.println("Starting...");
-  Serial.println("Resetting encoders.");
-  roboclaw.ResetEncoders(address);
+  roboclaw.ResetEncoders(ROBOCLAW_ADDRESS);
+  roboclaw.SetM1VelocityPID(ROBOCLAW_ADDRESS, Kd, Kp, Ki, QPPS);
+  roboclaw.SetM2VelocityPID(ROBOCLAW_ADDRESS, Kd, Kp, Ki, QPPS);
 
-  Serial.println("Keyboard Control Ready:");
-  Serial.println("W = Forward | S = Stop | X = Backward");
-  Serial.println("A = Turn Left | D = Turn Right");
-  Serial.println("+ = Increase Speed | - = Decrease Speed");
-  roboclaw.SetM1VelocityPID(address,Kd,Kp,Ki,qpps);
-  roboclaw.SetM2VelocityPID(address,Kd,Kp,Ki,qpps); 
-
-  // Robot initially stopped
-  led_color[0] = 255; // Red
-  led_color[1] = 0;
-  led_color[2] = 0;
-  setLEDs(strip.Color(led_color[0], led_color[1], led_color[2]));
-
-
+  pinMode(ULTRASONIC, INPUT);
 }
 
 void loop() {
-  // Read ultrasonic sensor (A0) and convert to cm
-  sensorValue1=analogRead(SONAR_PIN1);
-  Inch1= (sensorValue1*0.497);
-  cm1=Inch1*2.54;
-  // Serial.println(cm1);
+  displayspeed();
+  bool ultrasonic_signal = digitalRead(ULTRASONIC);
 
-  // Check for obstacles
-  if (false) {
-  // if (cmDistance < threshold) {
-    strip.fill(strip.Color(255, 0, 0));
-    strip.show();
-    // Stop MOtors
-    roboclaw.ForwardBackwardM1(address, 64);
-    roboclaw.ForwardBackwardM2(address, 64);
+  bool obstacleDetected = (digitalRead(LEFT_BUMP) || digitalRead(RIGHT_BUMP) ||
+                           digitalRead(FRONT_BUMP) || digitalRead(BACK_BUMP));
+
+  //Serial.println(ultrasonic_signal);
+
+  if (obstacleDetected){ // || (ultrasonic_signal && gui_command)) {
+    roboclaw.SpeedM1(ROBOCLAW_ADDRESS, 0);
+    roboclaw.SpeedM2(ROBOCLAW_ADDRESS, 0);
     setLEDs(strip.Color(255, 0, 0));
-    delay(50);
-    return;
+  }
+  else if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    Serial.print("Raw input: "); //debugging line
+    Serial.println(input);//debugging line
+
+    int firstSpace = input.indexOf(' ');
+    int secondSpace = input.indexOf(' ', firstSpace + 1);
+    int thirdSpace = input.indexOf(' ', secondSpace + 1);
+
+    if (firstSpace == -1 || secondSpace == -1 || thirdSpace == -1) {
+      Serial.println("Error: Invalid input format.");
+      liftStop();
+    } else {
+      String Vx_str = input.substring(0, firstSpace);
+      String Vy_str = input.substring(firstSpace + 1, secondSpace);
+      String Vtheta_str = input.substring(secondSpace + 1, thirdSpace);
+      String lift_str = input.substring(thirdSpace + 1);
+
+      if (!hasThreeDecimalPlaces(Vx_str) || !hasThreeDecimalPlaces(Vtheta_str) || !hasThreeDecimalPlaces(lift_str)) {
+        Serial.println("Error: Values must have exactly 3 decimal places.");
+        liftStop();
+        roboclaw.SpeedM1(ROBOCLAW_ADDRESS, 0);
+        roboclaw.SpeedM2(ROBOCLAW_ADDRESS, 0);
+      } else {
+        float Vx = Vx_str.toFloat(), Vy = Vy_str.toFloat(), Vtheta = Vtheta_str.toFloat(), lift_action = lift_str.toFloat();
+
+//        if(Vy != 0){ //if the touch screen is being used
+//          gui_command = false;  
+//        }
+//        else{
+//          gui_command = true;  
+//        }
+        
+        if (lift_action != 0) setLiftSpeed(abs(lift_action)), lift_action > 0 ? liftUp() : liftDown();
+        else liftStop();
+
+        tankDrive(Vx, Vtheta, WHEEL_WIDTH, leftMotorSpeed, rightMotorSpeed);
+        roboclaw.SpeedM1(ROBOCLAW_ADDRESS, -mps_to_qpps(leftMotorSpeed));
+        roboclaw.SpeedM2(ROBOCLAW_ADDRESS, mps_to_qpps(rightMotorSpeed));
+        if (Vx != 0.000 || Vtheta != 0.000)
+        {
+          setLEDs(strip.Color(0, 255, 0));
+        } else {
+          setLEDs(strip.Color(255, 0, 0));
+
+        }
+      }
+    }
   }
 
-  // Check for keyboard input
-  if (Serial.available()) {
-    String input = Serial.readStringUntil('\n'); // Read the entire line
-    int Vx, Vy, Vtheta;
-
-    // Parse three integer values from the input
-    //V-x V-y V-theta
-    sscanf(input.c_str(), "%d %d %d", &Vx, &Vy, &Vtheta);
-
-    if(Vx == 0 or Vy == 0 or Vtheta == 0){ // STOPPED
-      led_color[0] = 255; // Red
-      led_color[1] = 0;
-      led_color[2] = 0;
-    }
-    else{ // MOVING
-      led_color[0] = 0;
-      led_color[1] = 255; //green
-      led_color[2] = 0;
-    }
-
-    // Set LED lights to specified color
-    setLEDs(strip.Color(led_color[0], led_color[1], led_color[2]));
-
-    tankDrive(Vx, Vtheta, wheel_width, leftMotorSpeed, rightMotorSpeed);
-    
-
-
-    // Assign motor speed to motors 
-    // M1 is left motor (inverted, so, negative is forwards). But, tankdrive will handle this negative
-    // M2 is right motor (normal, so, positive is forwards)
-    roboclaw.SpeedM1(address, leftMotorSpeed);
-    roboclaw.SpeedM2(address, rightMotorSpeed);
-    
-    //char command = Serial.read();  // Read single character
-
-//    switch (command) {
-//      case 'w':
-//        roboclaw.ForwardBackwardM1(address, 94); 
-//        roboclaw.ForwardBackwardM2(address, 94); 
-//        setLEDs(strip.Color(0, 255, 0));  // Green for movement
-//        break;
-//      case 's':
-//        roboclaw.ForwardBackwardM1(address, 33); 
-//        roboclaw.ForwardBackwardM2(address, 33); 
-//        setLEDs(strip.Color(0, 255, 0));  
-//        break;
-//      case 'a':
-//        roboclaw.ForwardBackwardM1(address, 94); 
-//        roboclaw.ForwardBackwardM2(address, 33); 
-//        setLEDs(strip.Color(0, 255, 0));  
-//        break;
-//      case 'd':
-//        roboclaw.ForwardBackwardM1(address, 33); 
-//        roboclaw.ForwardBackwardM2(address, 94); 
-//        setLEDs(strip.Color(0, 255, 0));  
-//        break;
-//      case 'x':
-//        roboclaw.ForwardBackwardM1(address, 64);
-//        roboclaw.ForwardBackwardM2(address, 64);
-//        setLEDs(strip.Color(255, 0, 0));
-//        break;
-//      default:
-//        // Ignore unknown keys
-//        break;
-//    }
-
-    // Flush serial buffer
-    while (Serial.available()) Serial.read();
-  }
-
-  delay(50);
+  delay(20);
 }
