@@ -23,34 +23,43 @@ export default function GamepadWithAuth() {
   // const SERVER_IP = 'ws://192.168.1.5:3000'; // Jetson on Netgear
   // const HTTP_SERVER = 'http://128.197.53.43:3000'; // Jetson on Ethernet
   // const WS_SERVER = 'ws://128.197.53.43:3000'; // Jetson on Ethernet
-  // const HTTP_SERVER = 'http://10.192.31.229:3000'; // Jetson on BU Guest
-  // const WS_SERVER = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
-  const HTTP_SERVER = 'http://10.193.24.226:3000'; // Jetson on BU Guest SO2
-  const WS_SERVER = 'ws://10.193.24.226:3000'; // Jetson on BU Guest SO2
+  const HTTP_SERVER = 'http://10.192.31.229:3000'; // Jetson on BU Guest
+  const WS_SERVER = 'ws://10.192.31.229:3000'; // Jetson on BU Guest
+  // const HTTP_SERVER = 'http://10.193.24.226:3000'; // Jetson on BU Guest SO2
+  // const WS_SERVER = 'ws://10.193.24.226:3000'; // Jetson on BU Guest SO2
   
   const maxRetries = 5;
   const retryCountRef = useRef(0);
 
-  // Establish the WebSocket connection
   useEffect(() => {
     const connectWebSocket = () => {
       console.log(`Connecting to WebSocket at ${WS_SERVER}`);
       ws.current = new WebSocket(WS_SERVER);
-
+  
       ws.current.onopen = () => {
         console.log('✅ WebSocket connection opened');
         retryCountRef.current = 0;
       };
-
+  
       ws.current.onmessage = (event) => {
         console.log('📩 Received:', event.data);
-        // Handle incoming messages as needed.
+        const msg = event.data.trim();
+        // Handle speed change messages:
+        if (['L', 'M', 'H'].includes(msg)) {
+          console.log(`Speed change received: ${msg}`);
+          setCurrentSpeed(msg);
+        }
+        // Handle authentication message:
+        else if (msg === 'AUTH_SUCCESS') {
+          // You can handle auth success if needed.
+        }
+        // Other messages can be handled here.
       };
-
+  
       ws.current.onerror = (error) => {
         console.error('❌ WebSocket error:', error);
       };
-
+  
       ws.current.onclose = () => {
         console.log('🔴 WebSocket connection closed');
         if (retryCountRef.current < maxRetries) {
@@ -64,13 +73,14 @@ export default function GamepadWithAuth() {
         }
       };
     };
-
+  
     connectWebSocket();
-
+  
     return () => {
       if (ws.current) ws.current.close();
     };
   }, []);
+  
 
   // Function to send gamepad commands via WebSocket
   const sendCommand = (command) => {
