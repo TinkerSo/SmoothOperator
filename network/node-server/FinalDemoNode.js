@@ -414,6 +414,11 @@ wss.on('connection', (ws, req) => {
         if (['L', 'M', 'H'].includes(trimmedMessage)) {
             currentSpeed = trimmedMessage;
             console.log(`Speed set to: ${currentSpeed}`);
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(currentSpeed);
+                }
+            });
             return; // Do not process further.
         }
 

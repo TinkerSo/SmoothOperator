@@ -581,14 +581,16 @@ class MenuScreen(FloatLayout):
         self.bg.size = self.size
 
 # ------------------ WebSocket Client ------------------
+
 class WebSocketClient:
-    def __init__(self, url):
+    def __init__(self, url, message_callback=None):
         self.url = url
         self.ws = None
         self.connected = False
         self.reconnect_attempts = 0
         self.max_reconnect_attempts = 5
         self.status_callback = None
+        self.message_callback = message_callback  # New callback for messages
         self.connect()
 
     def set_status_callback(self, callback):
@@ -605,6 +607,8 @@ class WebSocketClient:
                 self.status_callback(True)
         def on_message(ws, message):
             print(f"Message from server: {message}")
+            if self.message_callback:
+                self.message_callback(message)
         def on_error(ws, error):
             print(f"WebSocket error: {error}")
             self.connected = False
@@ -648,6 +652,8 @@ class WebSocketClient:
             print("WebSocket is not connected.")
             return False
 
+
+
 # ------------------ ManualControlScreen ------------------
 class ManualControlScreen(Screen):
     def __init__(self, **kwargs):
@@ -662,7 +668,8 @@ class ManualControlScreen(Screen):
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
         self.server_ip = WS_SERVER_URL
-        self.ws_client = WebSocketClient(self.server_ip)
+        # Pass the new message callback to the WebSocketClient
+        self.ws_client = WebSocketClient(self.server_ip, message_callback=self.on_ws_message)
         self.control_grid = self.create_control_grid()
         self.main_layout.add_widget(self.control_grid)
         self.add_widget(self.main_layout)
@@ -751,6 +758,30 @@ class ManualControlScreen(Screen):
         if command in sound_map:
             sound_manager.play_sound(sound_map[command], face_widget=self)
         return self.ws_client.send(command) if self.ws_client else False
+
+    def start_ws(self):
+        WS_SERVER = WS_SERVER_URL
+        self.ws = websocket.WebSocketApp(
+            WS_SERVER,
+            on_message=self.on_ws_message,
+            on_error=self.on_ws_error,
+            on_close=self.on_ws_close,
+            on_open=self.on_ws_open,
+            keep_running=True
+        )
+        threading.Thread(target=self.ws.run_forever, daemon=True).start()
+
+    def on_ws_message(self, ws, message):
+        print("ManualControlScreen received WebSocket message:", message)
+        msg = message.strip()
+        if msg in ['L', 'M', 'H']:
+            mapping = {'L': 'Low Speed', 'M': 'Medium Speed', 'H': 'High Speed'}
+            button_label = mapping.get(msg)
+            if button_label and button_label in self.speed_buttons:
+                btn = self.speed_buttons[button_label]
+                print(f"Updating active speed button to: {button_label}")
+                Clock.schedule_once(lambda dt: self.set_active_speed(btn), 0)
+
 
 # ------------------ LoadLuggageScreen ------------------
 class LoadLuggageScreen(Screen):
