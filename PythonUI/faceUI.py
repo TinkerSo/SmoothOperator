@@ -368,7 +368,7 @@ class FaceScreen(Widget):
         # Check for the specific "Goal Reached" message
         if command == "Goal Reached":
             Clock.schedule_once(lambda dt: self.handle_goal_reached(), 0)
-        elif command in ['w', 'a', 's', 'd', 'x']:
+        elif command in ['w', 'a', 's', 'd', 'x', 'wr', 'ar','sr', 'dr']:
             Clock.schedule_once(lambda dt: self.process_remote_command(command), 0)
         else:
             print("Received unknown remote command:", command)
@@ -388,19 +388,19 @@ class FaceScreen(Widget):
         print("FaceScreen remote WS opened")
 
     def process_remote_command(self, command):
-        if command in ['w', 'a', 's', 'd']:
+        if command in ['wr', 'ar', 'sr', 'dr']:
             self.movement_active = True
             if not self.movement_sound_event:
                 self.movement_sound_event = Clock.schedule_interval(self.play_movement_sound, 5.0)
             movement_x = 150
             movement_y = 50
-            if command == 'w':
+            if command == 'wr':
                 self.eye_offset_y = movement_y
-            elif command == 's':
+            elif command == 'sr':
                 self.eye_offset_y = -movement_y
-            elif command == 'a':
+            elif command == 'ar':
                 self.eye_offset_x = -movement_x
-            elif command == 'd':
+            elif command == 'dr':
                 self.eye_offset_x = movement_x
             self.update_positions()
             self.update_mouth_position()

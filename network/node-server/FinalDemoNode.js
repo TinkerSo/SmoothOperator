@@ -423,7 +423,7 @@ wss.on('connection', (ws, req) => {
         }
 
         // Process movement commands
-        if (['w', 'a', 's', 'd', 'x', '+', '-', '='].includes(trimmedMessage)) {
+        if (['w', 'a', 's', 'd', 'x', 'wr', 'ar', 'sr', 'dr', '+', '-', '='].includes(trimmedMessage)) {
             console.log(`Received movement command: ${trimmedMessage}`);
             // Broadcast the movement command to all clients.
             wss.clients.forEach((client) => {
