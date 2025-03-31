@@ -60,7 +60,7 @@ float leftMotorSpeed, rightMotorSpeed;
 const float WHEEL_WIDTH = 0.5334;
 const float DISTANCE_THRESHOLD = 40.0;
 
-bool gui_command = true;
+bool gui_command;
 
 String sonic_input;
 
@@ -183,12 +183,12 @@ void loop() {
 
   //Serial.println(ultrasonic_signal);
 
-  if (obstacleDetected){ // || (ultrasonic_signal && gui_command)) {
+  if (obstacleDetected && !gui_command){ // || (ultrasonic_signal && gui_command)) {
     roboclaw.SpeedM1(ROBOCLAW_ADDRESS, 0);
     roboclaw.SpeedM2(ROBOCLAW_ADDRESS, 0);
     setLEDs(strip.Color(255, 0, 0));
   }
-  else if (Serial.available()) {
+  if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
     input.trim();
     Serial.print("Raw input: "); //debugging line
@@ -215,12 +215,12 @@ void loop() {
       } else {
         float Vx = Vx_str.toFloat(), Vy = Vy_str.toFloat(), Vtheta = Vtheta_str.toFloat(), lift_action = lift_str.toFloat();
 
-//        if(Vy != 0){ //if the touch screen is being used
-//          gui_command = false;  
-//        }
-//        else{
-//          gui_command = true;  
-//        }
+       if(Vy != 0.000){ //if the touch screen is being used
+         gui_command = true;  
+       }
+       else{
+         gui_command = false;  
+       }
         
         if (lift_action != 0) setLiftSpeed(abs(lift_action)), lift_action > 0 ? liftUp() : liftDown();
         else liftStop();

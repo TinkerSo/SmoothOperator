@@ -434,7 +434,7 @@ class GoalReachedScreen(Screen):
         header = HeaderBar(title="Luggage Delivered",)
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
-        
+        sound_manager.play_sound('Arrived', face_widget=self)
         # The question to prompt the user
         self.question_label = Label(
             text="Gate reached!\nSmoothOperator has brought your luggage to your gate.\nAre you done using SmoothOperator?",
@@ -1111,6 +1111,7 @@ class SoundManager:
             'BEEP': ["audio/BEEPBEEP.mp3"],
             'Watchout': ["audio/Watchout.mp3"],
             'Luggage': ["audio/Luggage.mp3"],
+            'Arrived': ["audio/Arrived.mp3"]
         }
 
     def play_sound(self, sound_key, face_widget=None):
@@ -1169,6 +1170,7 @@ class SmoothOperatorApp(App):
 
 
         self.sm.current = "face"
+        sound_manager.play_sound('start', face_widget=self.face_widget)
         # if self.sm.current == "face":
         #     # Play the start sound when the app starts
         #     Clock.schedule_interval(lambda dt: sound_manager.play_sound('start', face_widget=self.face_widget), 7)
