@@ -361,13 +361,15 @@ class FaceScreen(Widget):
             keep_running=True
         )
         threading.Thread(target=self.remote_ws.run_forever, daemon=True).start()
-
+    
     def on_remote_message(self, ws, message):
         print("FaceScreen remote WS message:", message)
         command = message.strip()
         # Check for the specific "Goal Reached" message
-        if command == "Goal Reached":
+        app = App.get_running_app()
+        if command == "Goal Reached" and app.achieved_goal == False:
             Clock.schedule_once(lambda dt: self.handle_goal_reached(), 0)
+            app.achieved_goal = True
         elif command in ['w', 'a', 's', 'd', 'x', 'wr', 'ar','sr', 'dr']:
             Clock.schedule_once(lambda dt: self.process_remote_command(command), 0)
         else:
@@ -1062,6 +1064,7 @@ class PostScanScreen(Screen):
             except Exception as e:
                 print("Error sending QR data on confirmation:", e)
         app = App.get_running_app()
+        app.achieved_goal = False
         app.sm.transition = CardTransition(mode='pop')
         app.sm.current = "face"
 
@@ -1146,7 +1149,7 @@ class SmoothOperatorApp(App):
         connect_screen = ConnectScreen(name="connect")
         load_luggage_screen = LoadLuggageScreen(name="load_luggage")
         goal_reached_screen = GoalReachedScreen(name="goal_reached")
-
+        self.achieved_goal = False
 
         self.face_widget = FaceScreen(self.switch_to_menu)
         face_screen.add_widget(self.face_widget)
