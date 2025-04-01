@@ -447,7 +447,7 @@ class GoalReachedScreen(Screen):
                                         spacing=20,
                                         size_hint=(0.8, 0.4),
                                         pos_hint={'center_x': 0.5, 'center_y': 0.65})
-        self.confirm_label = Label(text="Are you finished with SmoothOperator?",
+        self.confirm_label = Label(text=f"Arrived at [b] Terminal B, Gate 12 [/b]!\nAre you finished with SmoothOperator?",
                                    font_size=50,
                                    color=THEME_COLORS['text'],
                                    halign='center', valign='middle')
@@ -759,7 +759,6 @@ class WebSocketClient:
         else:
             print("WebSocket is not connected.")
             return False
-
 
 
 # ------------------ ManualControlScreen ------------------
@@ -1091,6 +1090,15 @@ class QRScreen(Screen):
             f"Boarding at TERMINAL [b]{terminal}[/b] GATE [b]{gate}[/b] at [b]{dep_time}[/b]\n\n"
             f"Would you like Smooth Operator to bring your items to your gate automatically?"
         )
+        if passenger_name == "Professor Alan Pisano":
+            sound_manager.play_sound('Pisano')
+        elif passenger_name == "Professor Osama Alshaykh":
+            sound_manager.play_sound('Osama')
+        elif passenger_name == "Professor Ryan Lagoy":
+            sound_manager.play_sound('Lagoy')
+        elif passenger_name == "Professor Michael Hirsch":
+            sound_manager.play_sound('Hirsch')
+
         if self.switch_to_postscan:
             # Pass both the message and payload to the callback.
             self.switch_to_postscan(postscan_message, payload)
@@ -1190,8 +1198,11 @@ class SoundManager:
             'Watchout': ["audio/Watchout.mp3"],
             'Luggage': ["audio/Luggage.mp3"],
             'Arrived': ["audio/Arrived.mp3"],
-            'UnloadConfirmation': ["audio/UnloadConfirmation.mp3"]
-
+            'UnloadConfirmation': ["audio/UnloadConfirmation.mp3"],
+            'Pisano': ["audio/Pisano.mp3"],
+            'Osama': ["audio/Osama.mp3"],
+            'Lagoy': ["audio/Lagoy.mp3"],
+            'Hirsch': ["audio/Hirsch.mp3"]
         }
 
     def play_sound(self, sound_key, face_widget=None):
@@ -1251,9 +1262,6 @@ class SmoothOperatorApp(App):
 
         self.sm.current = "face"
         sound_manager.play_sound('start', face_widget=self.face_widget)
-        # if self.sm.current == "face":
-        #     # Play the start sound when the app starts
-        #     Clock.schedule_interval(lambda dt: sound_manager.play_sound('start', face_widget=self.face_widget), 7)
 
         return self.sm
 
@@ -1292,7 +1300,18 @@ class SmoothOperatorApp(App):
             postscan_screen = self.sm.get_screen("postscan")
             postscan_screen.update_postscan_message(message)
             postscan_screen.payload = payload  # Store the payload for later use.
-        sound_manager.play_sound('ScanSuccess')
+        passenger_name = payload.get("name") if payload else None
+
+        if passenger_name == "Professor Alan Pisano":
+            sound_manager.play_sound('Pisano')
+        elif passenger_name == "Professor Osama Alshaykh":
+            sound_manager.play_sound('Osama')
+        elif passenger_name == "Professor Ryan Lagoy":
+            sound_manager.play_sound('Lagoy')
+        elif passenger_name == "Professor Michael Hirsch":
+            sound_manager.play_sound('Hirsch')
+        else:
+            sound_manager.play_sound('ScanSuccess')
         self.sm.transition = CardTransition(mode='pop')
         self.sm.current = "postscan"
 

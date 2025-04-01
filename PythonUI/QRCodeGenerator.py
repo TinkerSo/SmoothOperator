@@ -3,7 +3,7 @@ import json
 
 # Condensed boarding pass data
 boarding_pass = {
-    "name": "SmoothOperator",
+    "name": "Professor Michael Hirsch",
     "flight": "AA1234",
     "from": "BOS",
     "to": "LAX",
