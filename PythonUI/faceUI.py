@@ -464,10 +464,11 @@ class GoalReachedScreen(Screen):
         self.confirm_button_layout.add_widget(yes_button)
         self.confirm_button_layout.add_widget(no_button)
         self.confirm_layout.add_widget(self.confirm_button_layout)
+
         self.main_layout.add_widget(self.confirm_layout)
 
         # ------------- Unload Layout -------------
-        # This layout is hidden initially and will be shown after the user confirms they're finished.
+        # Prepare the unload layout but don't add it initially.
         self.unload_layout = BoxLayout(orientation='vertical',
                                        spacing=20,
                                        size_hint=(0.8, 0.5),
@@ -483,37 +484,49 @@ class GoalReachedScreen(Screen):
         self.ws_client = WebSocketClient(WS_SERVER_URL)
         self.lift_controls = BoxLayout(orientation='vertical',
                                        spacing=20,
-                                       size_hint=(0.5, 0.4),
+                                       size_hint=(0.5, 1),
                                        pos_hint={'center_x': 0.5})
-        up_btn = RoundedButton(text="Up", bg_color=THEME_COLORS['primary'], font_size=50, height=80)
-        down_btn = RoundedButton(text="Down", bg_color=THEME_COLORS['primary'], font_size=50, height=80)
+        up_btn = RoundedButton(text="Up", bg_color=THEME_COLORS['primary'], font_size=50)
+        down_btn = RoundedButton(text="Down", bg_color=THEME_COLORS['primary'], font_size=50)
+
+
+
+        # A button to confirm that unloading is complete.
+        confirm_unload_button = RoundedButton(text="Confirm Unload", bg_color=THEME_COLORS['success'], font_size=50)
         up_btn.bind(on_press=lambda instance: self.send_command("+"))
         up_btn.bind(on_release=lambda instance: self.send_command("="))
         down_btn.bind(on_press=lambda instance: self.send_command("-"))
         down_btn.bind(on_release=lambda instance: self.send_command("="))
+        confirm_unload_button.bind(on_press=self.on_unload_confirm)
         self.lift_controls.add_widget(up_btn)
         self.lift_controls.add_widget(down_btn)
+        self.lift_controls.add_widget(confirm_unload_button)
         self.unload_layout.add_widget(self.lift_controls)
+        
+        # self.unload_layout.add_widget(confirm_unload_button)
 
-        # A button to confirm that unloading is complete.
-        confirm_unload_button = RoundedButton(text="Confirm Unload", bg_color=THEME_COLORS['success'], font_size=50)
-        confirm_unload_button.bind(on_press=self.on_unload_confirm)
-        self.unload_layout.add_widget(confirm_unload_button)
-
-        # Hide the unload layout initially.
-        self.unload_layout.opacity = 0
-        self.unload_layout.disabled = True
-
-        self.main_layout.add_widget(self.unload_layout)
+        # Initially, we only add the main_layout (which contains the confirmation layout)
         self.add_widget(self.main_layout)
+
+    def on_pre_enter(self):
+        # Reset state each time the screen is entered:
+        # Remove the unload_layout if it's present.
+        if self.unload_layout.parent:
+            self.main_layout.remove_widget(self.unload_layout)
+        # Add the confirmation layout if it isn't already there.
+        if not self.confirm_layout.parent:
+            self.main_layout.add_widget(self.confirm_layout)
+        # Reset confirmation layout properties.
+        self.confirm_layout.opacity = 1
+        self.confirm_layout.disabled = False
 
     def on_yes(self, instance):
         # User confirms they are finished with SmoothOperator.
-        # Hide the confirmation layout and show the unloading controls.
-        self.confirm_layout.opacity = 0
-        self.confirm_layout.disabled = True
-        self.unload_layout.opacity = 1
-        self.unload_layout.disabled = False
+        # Remove the confirmation layout and add the unloading controls.
+        sound_manager.play_sound('UnloadConfirmation', face_widget=self)
+
+        self.main_layout.remove_widget(self.confirm_layout)
+        self.main_layout.add_widget(self.unload_layout)
 
     def on_no(self, instance):
         # User is not finished, so keep SmoothOperator active.
@@ -1176,7 +1189,9 @@ class SoundManager:
             'BEEP': ["audio/BEEPBEEP.mp3"],
             'Watchout': ["audio/Watchout.mp3"],
             'Luggage': ["audio/Luggage.mp3"],
-            'Arrived': ["audio/Arrived.mp3"]
+            'Arrived': ["audio/Arrived.mp3"],
+            'UnloadConfirmation': ["audio/UnloadConfirmation.mp3"]
+
         }
 
     def play_sound(self, sound_key, face_widget=None):
