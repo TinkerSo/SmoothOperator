@@ -447,11 +447,16 @@ class GoalReachedScreen(Screen):
                                         spacing=20,
                                         size_hint=(0.8, 0.4),
                                         pos_hint={'center_x': 0.5, 'center_y': 0.65})
-        self.confirm_label = Label(text=f"Arrived at [b] Terminal B, Gate 12 [/b]!\nAre you finished with SmoothOperator?",
-                                   font_size=50,
-                                   color=THEME_COLORS['text'],
-                                   halign='center', valign='middle')
+        self.confirm_label = Label(
+            text="Arrived at [b]Terminal B, Gate 12[/b]!\nAre you finished with SmoothOperator?",
+            font_size=50,
+            color=THEME_COLORS['text'],
+            markup=True,
+            halign='center',
+            valign='middle'
+        )
         self.confirm_label.bind(size=self.confirm_label.setter('text_size'))
+
         self.confirm_layout.add_widget(self.confirm_label)
 
         self.confirm_button_layout = BoxLayout(orientation='horizontal',
