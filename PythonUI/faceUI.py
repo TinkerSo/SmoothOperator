@@ -428,38 +428,101 @@ class FaceScreen(Widget):
 
 # ------------------ GoalReachedScreen ------------------
 
-
 class GoalReachedScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.main_layout = FloatLayout()
-        header = HeaderBar(title="Luggage Delivered",)
+
+        # Header
+        header = HeaderBar(title="Luggage Delivered")
         header.pos_hint = {'top': 1}
         self.main_layout.add_widget(header)
+
+        # Play arrival sound
         sound_manager.play_sound('Arrived', face_widget=self)
-        # The question to prompt the user
-        self.question_label = Label(
-            text="Gate reached!\nSmoothOperator has brought your luggage to your gate.\nAre you done using SmoothOperator?",
-            markup=True, font_size=50,
-            color=THEME_COLORS['text'], halign='center', valign='middle',
-            pos_hint={'center_x': 0.5, 'center_y': 0.65}
-        )
-        self.main_layout.add_widget(self.question_label)
-        
-        # Create Yes/No buttons
-        button_layout = BoxLayout(orientation='horizontal', size_hint=(0.5, 0.1),
-                                  pos_hint={'center_x': 0.5, 'y': 0.3}, spacing=20)
+
+        # ------------- Confirmation Layout -------------
+        # This layout asks if the user is finished with SmoothOperator.
+        self.confirm_layout = BoxLayout(orientation='vertical',
+                                        spacing=20,
+                                        size_hint=(0.8, 0.4),
+                                        pos_hint={'center_x': 0.5, 'center_y': 0.65})
+        self.confirm_label = Label(text="Are you finished with SmoothOperator?",
+                                   font_size=50,
+                                   color=THEME_COLORS['text'],
+                                   halign='center', valign='middle')
+        self.confirm_label.bind(size=self.confirm_label.setter('text_size'))
+        self.confirm_layout.add_widget(self.confirm_label)
+
+        self.confirm_button_layout = BoxLayout(orientation='horizontal',
+                                               spacing=20,
+                                               size_hint=(1, 0.3))
         yes_button = RoundedButton(text="Yes", bg_color=THEME_COLORS['success'], font_size=50)
         no_button = RoundedButton(text="No", bg_color=THEME_COLORS['error'], font_size=50)
         yes_button.bind(on_press=self.on_yes)
         no_button.bind(on_press=self.on_no)
-        button_layout.add_widget(yes_button)
-        button_layout.add_widget(no_button)
-        self.main_layout.add_widget(button_layout)
-        
+        self.confirm_button_layout.add_widget(yes_button)
+        self.confirm_button_layout.add_widget(no_button)
+        self.confirm_layout.add_widget(self.confirm_button_layout)
+        self.main_layout.add_widget(self.confirm_layout)
+
+        # ------------- Unload Layout -------------
+        # This layout is hidden initially and will be shown after the user confirms they're finished.
+        self.unload_layout = BoxLayout(orientation='vertical',
+                                       spacing=20,
+                                       size_hint=(0.8, 0.5),
+                                       pos_hint={'center_x': 0.5, 'center_y': 0.5})
+        self.unload_label = Label(text="Please unload your luggage using the controls below:",
+                                  font_size=50,
+                                  color=THEME_COLORS['text'],
+                                  halign='center', valign='middle')
+        self.unload_label.bind(size=self.unload_label.setter('text_size'))
+        self.unload_layout.add_widget(self.unload_label)
+
+        # Create lifting controls (similar to LoadLuggageScreen)
+        self.ws_client = WebSocketClient(WS_SERVER_URL)
+        self.lift_controls = BoxLayout(orientation='vertical',
+                                       spacing=20,
+                                       size_hint=(0.5, 0.4),
+                                       pos_hint={'center_x': 0.5})
+        up_btn = RoundedButton(text="Up", bg_color=THEME_COLORS['primary'], font_size=50, height=80)
+        down_btn = RoundedButton(text="Down", bg_color=THEME_COLORS['primary'], font_size=50, height=80)
+        up_btn.bind(on_press=lambda instance: self.send_command("+"))
+        up_btn.bind(on_release=lambda instance: self.send_command("="))
+        down_btn.bind(on_press=lambda instance: self.send_command("-"))
+        down_btn.bind(on_release=lambda instance: self.send_command("="))
+        self.lift_controls.add_widget(up_btn)
+        self.lift_controls.add_widget(down_btn)
+        self.unload_layout.add_widget(self.lift_controls)
+
+        # A button to confirm that unloading is complete.
+        confirm_unload_button = RoundedButton(text="Confirm Unload", bg_color=THEME_COLORS['success'], font_size=50)
+        confirm_unload_button.bind(on_press=self.on_unload_confirm)
+        self.unload_layout.add_widget(confirm_unload_button)
+
+        # Hide the unload layout initially.
+        self.unload_layout.opacity = 0
+        self.unload_layout.disabled = True
+
+        self.main_layout.add_widget(self.unload_layout)
         self.add_widget(self.main_layout)
 
     def on_yes(self, instance):
+        # User confirms they are finished with SmoothOperator.
+        # Hide the confirmation layout and show the unloading controls.
+        self.confirm_layout.opacity = 0
+        self.confirm_layout.disabled = True
+        self.unload_layout.opacity = 1
+        self.unload_layout.disabled = False
+
+    def on_no(self, instance):
+        # User is not finished, so keep SmoothOperator active.
+        app = App.get_running_app()
+        app.sm.transition = CardTransition(mode='pop')
+        app.sm.current = "menu"
+
+    def on_unload_confirm(self, instance):
+        # When the user confirms unloading is complete, send data and return to the face screen.
         payload = {
             "name": "default",
             "flight": "default",
@@ -471,18 +534,17 @@ class GoalReachedScreen(Screen):
         }
         try:
             response = requests.post(f"{HTTP_SERVER_URL}/api/QR", json=payload, timeout=5)
-            print("Sent goal reached data after confirmation:", response.text)
+            print("Sent goal reached data after unloading confirmation:", response.text)
         except Exception as e:
-            print("Error sending goal reached data on confirmation:", e)
-        # Switch back to the Face screen (or another desired screen)
+            print("Error sending goal reached data on unloading confirmation:", e)
         app = App.get_running_app()
         app.sm.transition = CardTransition(mode='pop')
         app.sm.current = "face"
 
-    def on_no(self, instance):
-        app = App.get_running_app()
-        app.sm.transition = CardTransition(mode='pop')
-        app.sm.current = "menu"
+    def send_command(self, command):
+        if self.ws_client:
+            return self.ws_client.send(command)
+        return False
 
 
 # ------------------ ConnectScreen ------------------
