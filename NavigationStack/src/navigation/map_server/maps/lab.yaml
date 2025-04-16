@@ -1,0 +1,8 @@
+image: final_lab.pgm
+resolution: 0.05
+origin: [-50.000000, -50.000000, 0.000000]
+# origin: [50.00, 50.00, 0.000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+
