@@ -1,1 +1,0 @@
-/usr/bin/cc      -rdynamic CMakeFiles/cmTC_b0c72.dir/CheckSymbolExists.c.o  -o cmTC_b0c72 

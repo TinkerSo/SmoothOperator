@@ -1,0 +1,34 @@
+global_costmap:
+  global_frame: map
+  robot_base_frame: base_link
+  update_frequency: 0.5
+  static_map: true
+  resolution: 0.05
+  publish_frequency: 0.5
+  footprint_padding: 0.01
+  rolling_window: false
+  width: 10.0
+  height: 10.0
+  transform_tolerance: 0.5
+  footprint: [[-0.385, -0.385], [-0.385, 0.385], [0.385, 0.385], [0.385, -0.385]]
+  always_send_full_costmap: false
+
+  static_layer: {enabled: true, map_topic: map, subscribe_to_updates: true}
+
+  obstacle_layer:
+    combination_method: 1
+    enabled: true
+    footprint_clearing_enabled: true
+    max_obstacle_height: 2.0
+    observation_sources: scan
+    obstacle_range: 5.0
+    raytrace_range: 10.0
+    scan: {clearing: true, data_type: LaserScan, marking: true, sensor_frame: base_link, topic: scan}
+
+  inflation_layer: {cost_scaling_factor: 2.58, enabled: true, inflate_unknown: false, inflation_radius: 0.7}
+
+  plugins:
+    - {name: static_layer, type: 'costmap_2d::StaticLayer'}
+    - {name: obstacle_layer, type: 'costmap_2d::ObstacleLayer'}
+    - {name: inflation_layer, type: 'costmap_2d::InflationLayer'}
+
