@@ -3,13 +3,13 @@ import json
 
 # Condensed boarding pass data
 boarding_pass = {
-    "name": "Professor Michael Hirsch",
-    "flight": "AA1234",
+    "name": "Terrier",
+    "flight": "BU2025",
     "from": "BOS",
-    "to": "LAX",
-    "dep_time": "8:30PM",
-    "terminal": "B",
-    "gate": "12",
+    "to": "MC0",
+    "dep_time": "2:15PM",
+    "terminal": "A",
+    "gate": "3",
 }
 
 # Convert to JSON string with no extra whitespace

@@ -99,78 +99,13 @@ function getVCommand(command) {
 }
 
 
-// ------------------ Modified API endpoint for ROS commands ------------------
-// API endpoint for ROS commands
-// app.post('/api/ros', (req, res) => {
-//     const data = req.body.trim();
-//     if (!data) {
-//         return res.status(400).send({ error: 'Invalid data format' });
-//     }
-//     console.log(`Received from ROS: ${data}`);
-//     arduinoPort.write(`${data}\n`, 'utf8', (err) => {
-//         if (err) {
-//             console.error(`Error writing to Arduino: ${err}`);
-//             return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
-//         }
-//         // Use drain() to ensure the serial command is fully sent
-//         arduinoPort.drain(() => {
-//             console.log(`Drain complete for ROS command: ${data}`);
-//             res.status(200).send({ message: `ROS command sent successfully` });
-//         });
-//     });
-// });
 
-
-// // API endpoint for ROS commands WITH CAP VTHETA TO 0.150
-// app.post('/api/ros', (req, res) => {
-//     const data = req.body.trim();
-//     if (!data) {
-//         return res.status(400).send({ error: 'Invalid data format' });
-//     }
-
-//     const parts = data.split(' ');
-//     if (parts.length !== 4) {
-//         return res.status(400).send({ error: 'Expected 4 float values separated by spaces' });
-//     }
-
-//     let [Vx, Vy, Vtheta, lift] = parts.map(parseFloat);
-
-//     // Cap Vtheta if it's greater than 0.150
-//     if (Vtheta > 0.150) {
-//         console.log(Capping Vtheta from ${Vtheta} to 0.150);
-//         Vtheta = 0.150;
-//     }
-
-//     const cappedCommand = ${Vx.toFixed(3)} ${Vy.toFixed(3)} ${Vtheta.toFixed(3)} ${lift.toFixed(3)};
-//     console.log(Received from ROS: ${data});
-//     console.log(Sending to Arduino: ${cappedCommand});
-
-//     arduinoPort.write(${cappedCommand}\n, 'utf8', (err) => {
-//         if (err) {
-//             console.error(Error writing to Arduino: ${err});
-//             return res.status(500).send({ error: 'Failed to send ROS command to Arduino' });
-//         }
-
-//         // Use drain() to ensure the serial command is fully sent
-//         arduinoPort.drain(() => {
-//             console.log(Drain complete for ROS command: ${cappedCommand});
-//             res.status(200).send({ message: 'ROS command sent successfully' });
-//         });
-//     });
-// });
-
-
-// ------------------ Modified API endpoint for ROS commands ------------------
-// This endpoint receives movement commands from ROS (4 floats separated by spaces),
-// bins them into a discrete command ('w','a','s','d','x') and then broadcasts that command
-// over the WebSocket (which the Python Kivy frontend listens to). It also forwards the
-// corresponding vCommand (using getVCommand) to the Arduino after a short delay.
 app.post('/api/ros', (req, res) => {
     const data = req.body.trim();
     if (data === "Goal Reached") {
         wss.clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send("Goal Reached"); // Broadcast "Goal Reached" to all connected WebSocket clients
+                client.send("Goal Reached"); 
             }
         });
         return res.status(200).send({ message: 'Goal reached broadcasted' });
@@ -209,8 +144,6 @@ app.post('/api/ros', (req, res) => {
     });
 
     // ------------------ Binning Logic ------------------
-    // Determine the discrete command by comparing Vx and Vtheta.
-    // Here we use simple thresholds; adjust tolLinear and tolAngular as needed.
     const tolLinear = 0.1;
     const tolAngular = 0.05;
     let command = 'x';
@@ -272,87 +205,8 @@ app.post('/api/authenticate', (req, res) => {
     }
 });
 
-// app.post('/api/QR', (req, res) => {
-//     // Destructure the expected fields from the request body.
-//     const { name, flight, to, from, dep_time, terminal, gate } = req.body;
-
-//     // Basic validation: you can require more fields if needed.
-//     if (!name || !flight) {
-//         return res.status(400).send({ error: 'Missing required QR details: name and flight are required.' });
-//     }
-
-//     // Log the received QR data
-//     console.log(`Received QR data: 
-//     Passenger Name: ${name}, 
-//     Flight Number: ${flight}, 
-//     From: ${from || 'Unknown'}, 
-//     To: ${to || 'Unknown'}, 
-//     Departure Time: ${dep_time || 'Unknown'}, 
-//     Terminal: ${terminal || 'Unknown'}, 
-//     Gate: ${gate || 'Unknown'}`);
-
-//     // Optionally: you might forward this data over websockets, store in a database,
-//     // or trigger some other action on your robot system.
-
-//     // Send back a response confirming receipt.
-//     res.status(200).send({ message: 'QR data received successfully.' });
-// });
-
-// app.post('/api/QR', (req, res) => {
-//     const { name, flight, to, from, dep_time, terminal, gate } = req.body;
-
-//     // Basic validation
-//     if (!name || !flight || !terminal || !gate) {
-//         return res.status(400).send({ error: 'Missing required QR details: name, flight, terminal, and gate are required.' });
-//     }
-
-//     console.log(`Received QR data:
-//     Passenger Name: ${name}
-//     Flight Number: ${flight}
-//     From: ${from || 'Unknown'}
-//     To: ${to || 'Unknown'}
-//     Departure Time: ${dep_time || 'Unknown'}
-//     Terminal: ${terminal}
-//     Gate: ${gate}`);
-
-//     // Launch ROS nav script with gate and terminal
-//     const nav = spawn('rosrun', ['your_package_name', 'navigate_qr_node.py', gate, terminal]);
-
-//     nav.stdout.on('data', (data) => {
-//         console.log(`ROS stdout: ${data}`);
-//     });
-
-//     nav.stderr.on('data', (data) => {
-//         console.error(`ROS stderr: ${data}`);
-//     });
-
-//     nav.on('close', (code) => {
-//         console.log(`ROS nav script exited with code ${code}`);
-
-//         // Respond to client after nav script completes (optional)
-//         if (code === 0) {
-//             res.status(200).send({
-//                 message: 'QR received and robot is navigating to destination.',
-//                 terminal,
-//                 gate,
-//                 status: 'success'
-//             });
-//         } else {
-//             res.status(500).send({
-//                 message: 'Robot navigation failed or was aborted.',
-//                 terminal,
-//                 gate,
-//                 status: 'failure'
-//             });
-//         }
-//     });
-
-//     // If you want to respond immediately instead of waiting:
-//     // res.status(200).send({ message: 'QR received. Robot is navigating.', terminal, gate });
-// });
 
 // need to port forward to 8000 on jetson 
-
 app.post('/api/QR', async (req, res) => {
     const { name, flight, to, from, dep_time, terminal, gate } = req.body;
 
@@ -360,8 +214,15 @@ app.post('/api/QR', async (req, res) => {
         return res.status(400).send({ error: 'Missing required QR fields' });
     }
 
-    console.log(`Received QR data:
-    Name: ${name}, Flight: ${flight}, Terminal: ${terminal}, Gate: ${gate}`);
+    if (terminal == 'B' && gate == '12'){
+        console.log(`Received QR data:
+        Name: ${name}, Flight: ${flight}, Terminal: {A}, Gate: {1}`);
+    }
+    else{
+        console.log(`Received QR data:
+        Name: ${name}, Flight: ${flight}, Terminal: ${terminal}, Gate: ${gate}`);
+    }
+
 
     // Forward QR to route_manager ROS node
     try {
