@@ -31,6 +31,7 @@ The `NavigationStack` implements a 2D navigation system using ROS, which integra
 Here’s a combined and summarized section for the `SmoothOperatorUI` directory, including details about `faceUI.py`, suitable for a `README.md` file:
 
 ### 2. **Sensor Data Node**
+
    - Purpose: Node that interfaces with the hardware sensors to provide real-time environmental and motion data.
    - Responsibilities:
      - LiDAR Node: Continuously publishes 2D laser scan data
@@ -40,12 +41,14 @@ representing the surrounding environment. The LiDAR scans in a
 data, including displacement, velocity, and orientation.
 
 ### 3. **Odometry Node**
+
    - Purpose: This node uses the data from the wheel encoders and IMU to calculate the
 robot’s position and orientation over time via dead reckoning. The
 differential drive kinematics model considers the physical wheelbase and
 updates the robot’s estimated trajectory.
 
 ### 4. **Mapping Node**
+
    - Purpose: Creates a mapping of the environment.- Responsibilities:
      - Constructs a static 2D occupancy grid map using SLAM
 (Simultaneous Localization and Mapping) techniques.
@@ -56,6 +59,7 @@ own map of the environment.
 minor blemishes or mark new environment obstacles.
 
 ### 5. **Localization Node**
+
    - Purpose: Estimates the robot’s current position with respect to the
 pre-built map by using Monte Carlo Localization (AMCL).
    - Responsibilities:
@@ -65,19 +69,15 @@ frame (map), allowing for accurate path planning and correction of
 accumulated drift (known issue for dead reckoning). 
 
 ### 6. **Transform (TF) Nodes**
+
    - Purpose: TF nodes maintain a dynamic tree of coordinate frames between
 the robot base, its sensors, and the world. These transforms enable
 seamless integration of sensor data and motion commands by keeping all
 information spatially aligned.
 
 ### 7. **Costmap Nodes**
+
    - Purpose: Maintain a representation of the environment by using an occupancy grid.
-   - Responsibilities:
-     - 1
-     - 2
-     - 3
-### 2. **Example**
-   - Purpose: 
    - Responsibilities:
      - Global Costmap: Built using the static map produced by the
 mapping node. It is used for long-range path planning and marks
@@ -90,7 +90,6 @@ where each cell in the grid holds a cost value indicating whether the area is
 free, occupied, or unknown, and whether it’s near an obstacle. Both
 costmaps also inflate a region around obstacles to create a buffer zone, so
 the robot doesn’t plan paths too close to walls or objects.
-
 
 ---
 
