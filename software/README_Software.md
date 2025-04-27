@@ -28,6 +28,32 @@ The `NavigationStack` implements a 2D navigation system using ROS, which integra
 - **Hector SLAM**: Provides trajectory generation and map creation capabilities.
 - **Map Server**: A utility to manage and serve map data.
 
+Here’s a combined and summarized section for the `SmoothOperatorUI` directory, including details about `faceUI.py`, suitable for a `README.md` file:
+
+---
+
+### 2. **SmoothOperatorUI**
+
+The `SmoothOperatorUI` directory contains resources and scripts for managing the user interface and related utilities of the SmoothOperator system. It is built using Python and the Kivy framework, with additional integrations for custom widgets, audio playback, and server communication.
+
+- **faceUI.py**: The core GUI script that handles screen transitions, animations, audio synchronization, and WebSocket communication.  
+  - **Theme and Configuration**: Implements a consistent application theme and sets global configurations like server URLs and window size.
+  - **Custom Widgets**: Includes components such as `RoundedButton` for customizable buttons, `HeaderBar` for navigation, and facial animation widgets like `MouthWidget`.
+  - **Screens**: Manages user interactions across multiple screens:
+    - **FaceScreen**: Displays animated facial expressions and handles commands via WebSocket.
+    - **GoalReachedScreen**: Confirms task completion and provides unloading controls.
+    - **ConnectScreen**: Enables device connectivity using a passcode.
+    - **MenuScreen**: Acts as a navigation hub for selecting features.
+    - **ManualControlScreen**: Allows manual control of the robot.
+    - **QRScreen**: Scans boarding passes via webcam and processes QR codes.
+    - **PostScanScreen**: Displays QR scan details and user confirmation options.
+    - **HelpScreen**: Offers user instructions for using the system.
+  - **SoundManager**: Plays audio files for events like greetings, confirmations, and alerts.
+- **QRCodeGenerator.py**: A script for generating QR codes for use in the system.
+- **audio/**: A directory containing audio assets used in the interface.
+- **terminalQRCodes/**: Stores terminal-based QR code outputs.
+- **testFiles/**: Contains test scripts and resources for UI development.
+
 ### 2. **Example**
    - Purpose: 
    - Responsibilities:
