@@ -18,12 +18,16 @@ The `software` directory contains the implementation of key functionalities desi
 
 ## Software Modules
 
-### 1. **Example**
-   - Purpose: 
-   - Responsibilities:
-     - 1
-     - 2
-     - 3
+###  1. **Navigation Stack**
+
+The `NavigationStack` implements a 2D navigation system using ROS, which integrates odometry, sensor data, and goal poses to generate safe velocity commands for a mobile base. It includes the following key components:
+
+- **Global and Local Planners**: Interfaces (`BaseGlobalPlanner`, `BaseLocalPlanner`) and implementations for path planning.
+- **SLAM Integration**: Modules, such as `slam_gmapping`, for simultaneous localization and mapping.
+- **NavFn Library**: Implements Dijkstra-based pathfinding algorithms.
+- **Hector SLAM**: Provides trajectory generation and map creation capabilities.
+- **Map Server**: A utility to manage and serve map data.
+
 ### 2. **Example**
    - Purpose: 
    - Responsibilities:
