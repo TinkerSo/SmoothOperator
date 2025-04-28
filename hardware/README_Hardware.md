@@ -4,12 +4,13 @@
 1. [Project Overview](#project-overview)
 2. [System Block Diagram](#system-block-diagram)
 3. [Bill of Materials (BOM)](#bill-of-materials-bom)
-4. [Schematics and CAD Files](#schematics-and-cad-files)
-5. [Power System Details](#power-system-details)
-6. [Assembly and Wiring Instructions](#assembly-and-wiring-instructions)
-7. [Photos of Assembled System](#photos-of-assembled-system)
-8. [Significant Datasheets and References](#significant-datasheets-and-references)
-9. [Future Hardware Recommendations](#future-hardware-recommendations)
+4. [Mechanical Design Overview](#mechanical-design-overview)
+5. [Schematics and CAD Files](#schematics-and-cad-files)
+6. [Power System Details](#power-system-details)
+7. [Assembly and Wiring Instructions](#assembly-and-wiring-instructions)
+8. [Photos of Assembled System](#photos-of-assembled-system)
+9. [Significant Datasheets and References](#significant-datasheets-and-references)
+10. [Future Hardware Recommendations](#future-hardware-recommendations)
 
 ---
 
@@ -75,8 +76,21 @@ SmoothOperator is a full-scale robotic luggage assistant designed for dynamic ob
 
 ### **Total Cost**: $1,918.75
 
+## 4. Mechanical Design Overview
+### Frame
+The frame of SmoothOperator largely consists of 8020 T-slotted aluminum extrusions fastened into a U-shape using corner brackets and ¼”-20 screws. 1”x2” profile 8020 was used for the base to provide greater strength to the drivetrain and lower the center of gravity, improving stability. The rest of the frame was constructed from 1”x1” profile 8020 to balance cost and structural stability. The final frame dimensions are 2’x2’x4.25’, allowing the robot to carry luggage up to 14”x16”x30” in size.
 
-## 4. Schematics and CAD Files
+### Drivetrain
+The drivetrain features two Colson Performa wheels mounted centrally and four caster wheels at the corners, totaling six wheels. The central drive wheels slightly tilt the robot backward to ensure continuous ground contact and assist with luggage retention during motion. The wheels' thermoplastic elastomer tread helps reject small debris. The positioning of the wheels enables the robot to perform 0° point turns. A 10:1 compound gear reduction system is implemented, using a combination of 15-tooth and 45-tooth pulleys and 15-tooth and 50-tooth gears, achieving the desired torque and speed characteristics. The robot can reach speeds of up to 1.2 meters per second with this setup.
+
+### Lifting Mechanism
+SmoothOperator’s lifting mechanism functions similarly to a forklift, utilizing a linear actuator mounted to a fork assembly made from 8020 extrusions. This design allows luggage to be rolled above the forks while maintaining the robot’s center of mass. The forks are stabilized by PLA and ABS plastic sliders mounted onto the frame, with PLA sloped end caps providing a professional finish. The lifting system can lift and securely hold loads up to 80 pounds.
+
+### Floating Bumper
+For additional safety, the robot is equipped with a floating bumper made of pool noodles mounted to perimeter limit switches. If the bumper is depressed in any direction, the limit switches immediately trigger a halt in the robot’s movement. This system enhances the robot’s ability to safely navigate crowded environments. The bumper slightly extends the robot's profile to 31”x31”.
+
+
+## 5. Schematics and CAD Files
 - [Electronics Wiring Diagram (PDF)](./hardware/wiring_diagram.pdf)
 - [Chassis CAD Model (STEP File)](./cad/chassis_model.step)
 - [Sensor Mount CAD Drawings (PDF)](./cad/sensor_mounts.pdf)
@@ -84,14 +98,14 @@ SmoothOperator is a full-scale robotic luggage assistant designed for dynamic ob
 
 Original design files (.f3d, .step, .kicad_pcb) are included alongside PDFs for easier modification by future teams.
 
-## 5. Power System Details
+## 6. Power System Details
 - **Battery System**: Two 12V Lead Acid Batteries wired in parallel for increased capacity
 - **Operating Voltage**: 12V system voltage
 - **Peak Current Draw**: ~30A at startup (inrush), ~10A steady state
 - **Fuse Box**: Integrated fuse box protects each major subsystem separately
 - **Charging Notes**: Batteries must be charged individually or with a dual-bank 12V charger
 
-## 6. Assembly and Wiring Instructions
+## 7. Assembly and Wiring Instructions
 - Connect chassis components following CAD assembly drawings.
 - Mount motor controllers securely inside acrylic electronics bay.
 - Wire ultrasonic sensors and limit switches to the Arduino Mega via the custom PCB.
@@ -154,7 +168,7 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 
 
 
-## 7. Photos of Assembled System
+## 8. Photos of Assembled System
 (Insert photos of completed system showing multiple angles:
 - Front view
 - Rear view
@@ -162,7 +176,7 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 - Underside motor wiring
 - Sensor mount close-ups)
 
-## 8. Significant Datasheets and References
+## 9. Significant Datasheets and References
 - [RoboClaw Motor Controller Datasheet (Link)](https://www.basicmicro.com/assets/documents/roboclaw_user_manual.pdf)
 - [Jetson Nano Developer Kit Datasheet (Link)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 - [Arduino Mega 2560 Datasheet (Link)](https://store.arduino.cc/products/arduino-mega-2560-rev3)
@@ -170,7 +184,7 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 
 (Feel free to add links to battery specs, PCB design templates, or other critical parts.)
 
-## 9. Future Hardware Recommendations
+## 10. Future Hardware Recommendations
 - Upgrade to lithium-ion batteries for weight reduction and higher energy density.
 - Reinforce sensor mounts to better survive rough handling.
 - Explore waterproof enclosures if outdoor use is expected.
