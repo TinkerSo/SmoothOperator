@@ -55,8 +55,6 @@ The SmoothOperator prototype is fully built and operational as of Spring 2025. I
 
 ### Software Stack
 
-### Software Stack
-
 The software stack is built on ROS1 (Melodic) and integrates core navigation, localization, mapping, and external web communication modules:
 
 - `/move_base`: Central node managing global and local planning for autonomous navigation
