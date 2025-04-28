@@ -119,6 +119,106 @@ receive destination commands from the user interface and relays them to
 the path planning nodes. This allows for dynamic goal-setting during
 operation without restarting the navigation stack.
 
+### 2.0 **Onboard UI System**
+
+The `SmoothOperatorApp` is a Kivy-based Python application running on a touchscreen device (e.g., Jetson Nano with display) that serves as the primary onboard interface for the SmoothOperator™ robot. It handles user interactions, boarding pass scanning, robot control, and communication with the server over HTTP and WebSocket protocols.
+
+#### 2.1 **FaceScreen**
+
+- **Purpose:** The default idle screen that visually represents the robot’s face and awaits user interaction or remote commands.
+- **Responsibilities:**
+  - Renders animated facial expressions (blinking eyes, animated/static mouth).
+  - Displays a floating help button (launches HelpScreen).
+  - Starts a persistent WebSocket connection to listen for movement commands and goal completion messages.
+  - Transitions to `MenuScreen` upon touch.
+  - Handles “Goal Reached” signal by switching to `GoalReachedScreen`.
+  - Animates eyes and mouth in response to motion or speech playback.
+  - Plays relevant audio via `SoundManager`.
+
+#### 2.2 **MenuScreen**
+
+- **Purpose:** Central navigation hub for all available onboard features.
+- **Responsibilities:**
+  - Provides access to: 
+    - Manual Robot Control
+    - Load Luggage
+    - QR Code Boarding Pass Scan
+    - Connect to App
+    - Help
+  - Renders a set of `RoundedButton` widgets in a vertical layout.
+  - Manages screen transitions via callback functions to respective modules.
+
+#### 2.3 **ManualControlScreen**
+
+- **Purpose:** Allows users to control the robot manually using on-screen direction and speed buttons.
+- **Responsibilities:**
+  - Sends motor commands (`w`, `a`, `s`, `d`, `x`) to the backend over WebSocket.
+  - Allows speed selection via `L`, `M`, `H` commands.
+  - Displays directional buttons in a grid layout.
+  - Highlights the selected speed using color changes.
+  - Triggers sound feedback based on motion type (e.g., `move_forward`, `turn_left`).
+
+#### 2.4 **QRScreen**
+
+- **Purpose:** Captures and decodes boarding pass QR codes via webcam feed using OpenCV and Pyzbar.
+- **Responsibilities:**
+  - Initializes a camera feed using `cv2.VideoCapture`.
+  - Decodes QR codes in real time and parses flight data from embedded JSON.
+  - Shows live feedback below the camera (e.g., “Please Scan” or error messages).
+  - Animates green flash upon successful scan.
+  - Transitions to `PostScanScreen` with extracted payload (passenger and flight info).
+  - Plays specific professor-themed sounds if matched by name.
+
+#### 2.5 **PostScanScreen**
+
+- **Purpose:** Displays decoded boarding pass details and asks user to confirm autonomous delivery.
+- **Responsibilities:**
+  - Renders parsed passenger, flight, and gate information in markup-rich label.
+  - Offers “Yes” and “No” buttons:
+    - Yes: Sends data to server via HTTP POST, transitions to `FaceScreen`.
+    - No: Discards data and returns to `MenuScreen`.
+  - Handles screen transition using `CardTransition`.
+
+#### 2.6 **GoalReachedScreen**
+
+- **Purpose:** Confirms if the user has completed their trip after arriving at the destination.
+- **Responsibilities:**
+  - Triggered by `"Goal Reached"` WebSocket message from backend.
+  - Displays terminal/gate info and prompts user with "Are you finished?".
+  - If “Yes”: Reveals unloading controls (Up, Down, Confirm).
+  - Sends final payload confirming trip completion.
+  - If “No”: Returns to `MenuScreen`.
+
+#### 2.7 **ConnectScreen**
+
+- **Purpose:** Enables mobile app to pair with SmoothOperator via a passcode.
+- **Responsibilities:**
+  - Displays a randomly generated 4-digit code.
+  - Sends the passcode to the server via HTTP POST.
+  - Listens for `AUTH_SUCCESS` WebSocket message to confirm pairing.
+  - Transitions to confirmation screen and allows return to `FaceScreen`.
+
+
+#### 2.8 **LoadLuggageScreen**
+
+- **Purpose:** Provides direct control over the lift motor to load items into the robot.
+- **Responsibilities:**
+  - Displays “Up” and “Down” buttons to raise or lower the loading platform.
+  - Sends lift commands over WebSocket (`+`, `-`, `=`).
+  - Used before starting autonomous or manual delivery.
+
+#### 2.9 **HelpScreen**
+
+- **Purpose:** Offers guidance on how to operate SmoothOperator.
+- **Responsibilities:**
+  - Static instructions on navigating the UI and using key features.
+  - Markup formatting for clarity (e.g., bolded section titles).
+  - Accessible from both `FaceScreen` and `MenuScreen`.
+
+#### 2.10 **Audio System**
+
+All audio used in the onboard UI is managed by the `SoundManager` class and played using `pygame.mixer`. Sound files are stored in the `/audio` directory and include voice prompts, feedback cues, and themed greetings for specific passengers.
+
 ---
 
 ## Dependency Flow Chart
