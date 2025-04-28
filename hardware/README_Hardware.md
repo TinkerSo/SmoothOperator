@@ -189,8 +189,8 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 - [Jetson Nano Developer Kit Datasheet (Link)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 - [Arduino Mega 2560 Datasheet (Link)](https://store.arduino.cc/products/arduino-mega-2560-rev3)
 - [HC-SR04 Ultrasonic Sensor Datasheet (Link)](https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf)
-
-(Feel free to add links to battery specs, PCB design templates, or other critical parts.)
+- [RPLiDAR A1 (Link)](https://media.digikey.com/pdf/Data%20Sheets/DFRobot%20PDFs/DFR0315_Web.pdf)
+- [REV Through Bore Encoder (Link)](https://www.revrobotics.com/content/docs/REV-11-1271-DS.pdf)
 
 ## 10. Future Hardware Recommendations
 - Upgrade to lithium-ion batteries for weight reduction and higher energy density.
