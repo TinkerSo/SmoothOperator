@@ -93,9 +93,9 @@ All nodes communicate through ROS topics, and web API endpoints are used to inte
 To get SmoothOperator operational:
 
 1. Assemble the chassis according to the mechanical drawings (see `/hardware/Version 2/` folder).
-2. Wire and fuse the electrical system as outlined in [`/hardware/README_HARDWARE.md`](./hardware/README_HARDWARE.md).
+2. Wire and fuse the electrical system as outlined in [`/hardware/README_HARDWARE.md`](./hardware/README_Hardware.md).
 3. Flash the Arduino Mega with the motor and sensor firmware.
-4. Set up the Jetson Nano with Ubuntu 18.04, install ROS Melodic, and deploy software per [`/software/README_SOFTWARE.md`](./software/README_SOFTWARE.md).
+4. Set up the Jetson Nano with Ubuntu 18.04, install ROS Melodic, and deploy software per [`/software/README_SOFTWARE.md`](./software/README_Software.md).
 5. Test basic manual (teleop) control before engaging autonomous navigation.
 6. Calibrate ultrasonic sensors in the deployment environment.
 
@@ -111,7 +111,7 @@ To get SmoothOperator operational:
 
 - [Software Report (`README_SOFTWARE.md`)](./software/README_Software.md)
 - [Hardware Report (`README_HARDWARE.md`)](./hardware/README_Hardware.md)
-- [CAD Files and Mechanical Drawings](./cad/)
+- [CAD Files and Mechanical Drawings](./hardware/Version_2)
 - [Source Code](./software/)
 
 ## Team Members
