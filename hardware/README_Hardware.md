@@ -92,14 +92,14 @@ This is the block diagram for the power distribution. The 12V battery supplies a
 ## 4. Mechanical Design Overview
 ### Frame
 The frame of SmoothOperator largely consists of 8020 T-slotted aluminum extrusions fastened into a U-shape using corner brackets and ¼”-20 screws. 1”x2” profile 8020 was used for the base to provide greater strength to the drivetrain and lower the center of gravity, improving stability. The rest of the frame was constructed from 1”x1” profile 8020 to balance cost and structural stability. The final frame dimensions are 2’x2’x4.25’, allowing the robot to carry luggage up to 14”x16”x30” in size.
-![frame](./images/frame.jpg)
+![frame](../images/frame.jpg)
 
 *The chassis frame without electronics.*
 
 ### Drivetrain
 The drivetrain features two Colson Performa wheels mounted centrally and four caster wheels at the corners, totaling six wheels. The central drive wheels slightly tilt the robot backward to ensure continuous ground contact and assist with luggage retention during motion. The wheels' thermoplastic elastomer tread helps reject small debris. The positioning of the wheels enables the robot to perform 0° point turns. A 10:1 compound gear reduction system is implemented, using a combination of 15-tooth and 45-tooth pulleys and 15-tooth and 50-tooth gears, achieving the desired torque and speed characteristics. The robot can reach speeds of up to 1.2 meters per second with this setup.
 
-![gears](./images/drivetrain.jpg)
+![gears](../images/drivetrain.jpg)
 
 *Assembly of 10:1 gear reduction with 3D printed parts and timing belts.*
 
@@ -107,7 +107,7 @@ The drivetrain features two Colson Performa wheels mounted centrally and four ca
 ### Lifting Mechanism
 SmoothOperator’s lifting mechanism functions similarly to a forklift, utilizing a linear actuator mounted to a fork assembly made from 8020 extrusions. This design allows luggage to be rolled above the forks while maintaining the robot’s center of mass. The forks are stabilized by PLA and ABS plastic sliders mounted onto the frame, with PLA sloped end caps providing a professional finish. The lifting system can lift and securely hold loads up to 80 pounds.
 
-![lifting](./images/lifting.jpg)
+![lifting](../images/lifting.jpg)
 
 *Lifting mechanism assembly made with 8020 extrusions and 3D printed linear sliders.*
 
@@ -115,7 +115,7 @@ SmoothOperator’s lifting mechanism functions similarly to a forklift, utilizin
 ### Floating Bumper
 For additional safety, the robot is equipped with a floating bumper made of pool noodles mounted to perimeter limit switches. If the bumper is depressed in any direction, the limit switches immediately trigger a halt in the robot’s movement. This system enhances the robot’s ability to safely navigate crowded environments. The bumper slightly extends the robot's profile to 31”x31”.
 
-![bumper(./images/bumper.jpg)
+![bumper(../images/bumper.jpg)
 
 *Corner bumper assembly.*
 
