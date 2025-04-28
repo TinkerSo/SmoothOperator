@@ -319,6 +319,77 @@ The Arduino microcontroller runs low-level firmware that controls the SmoothOper
 
 ---
 
+### 5.0 **Node.js Server**
+
+The Node.js server acts as a communication bridge between the onboard system, Arduino microcontroller, React Native app, and external ROS processes. It manages serial I/O, real-time WebSocket communication, HTTP endpoints, and command translation logic to ensure smooth bidirectional data flow across all layers of the SmoothOperator™ system.
+
+---
+
+#### 5.1 **Serial Communication with Arduino**
+
+- **Purpose:** Sends real-time movement and lift commands to the Arduino and receives sensor feedback.
+- **Responsibilities:**
+  - Opens a serial connection with the Arduino (`/dev/ttyACM0`) at `9600` baud.
+  - Uses the `ReadlineParser` to process newline-terminated UART data.
+  - Forwards Arduino data to all active WebSocket clients in UTF-8 format.
+  - Handles transmission reliability with `.drain()` calls after writes.
+
+#### 5.2 **WebSocket Server**
+
+- **Purpose:** Enables real-time bidirectional messaging between the onboard UI, React Native app, and backend logic.
+- **Responsibilities:**
+  - Hosts a WebSocket server on port `3000`.
+  - Broadcasts messages to all clients, including:
+    - Movement commands (`w`, `a`, `s`, `d`, etc.)
+    - Speed mode updates (`L`, `M`, `H`)
+    - Authentication status (`AUTH_SUCCESS`)
+    - System states (e.g., `Goal Reached`)
+  - Relays movement commands to the Arduino with calculated speed-based velocity commands.
+  - Applies a 50ms delay before sending commands to prevent serial overload.
+
+#### 5.3 **Command Translation & Speed Scaling**
+
+- **Purpose:** Maps symbolic movement commands to structured velocity commands expected by the Arduino.
+- **Responsibilities:**
+  - Maintains a `baseCommands` object with templates using `{speed}` placeholders.
+  - Applies current speed mode (`L`, `M`, `H`) from global state to calculate real-time values.
+  - Translates incoming WebSocket commands into serial instructions (e.g., `w` → `"0.100 1.000 0.000 0.000"`).
+  - Supports both onboard and remote directional modes (e.g., `w` vs `wr`).
+
+#### 5.4 **ROS Integration Endpoint**
+
+- **Purpose:** Forwards QR code data to a local ROS node for routing and navigation.
+- **Route:** `POST /api/QR`
+- **Responsibilities:**
+  - Accepts payload fields: `name`, `flight`, `to`, `from`, `dep_time`, `terminal`, `gate`.
+  - Validates required fields.
+  - Forwards `terminal` and `gate` to the ROS endpoint at `http://localhost:8000/api/QR`.
+  - Responds to the onboard app with forwarding confirmation or error.
+
+#### 5.5 **ROS Motion Command Endpoint**
+
+- **Purpose:** Accepts motion commands from ROS and relays them to the Arduino.
+- **Route:** `POST /api/ros`
+- **Responsibilities:**
+  - Validates that data has four space-separated float values.
+  - Caps angular velocity `Vtheta` to `0.150` if exceeded.
+  - Sends velocity string to Arduino (via UART) after formatting to 3-decimal precision.
+  - Performs binning logic to determine discrete movement direction (`w`, `a`, `s`, `d`, `x`) based on velocity thresholds.
+  - Broadcasts binned direction via WebSocket for Kivy UI synchronization.
+
+#### 5.6 **Passcode Authentication System**
+
+- **Purpose:** Secures access to robot controls from the mobile app via a dynamic passcode.
+- **Routes:**
+  - `POST /api/connect` — Robot sends and sets the current session's passcode.
+  - `POST /api/authenticate` — Mobile app sends user-entered passcode for validation.
+- **Responsibilities:**
+  - Stores the current passcode in memory (`currentPasscode`).
+  - Verifies app passcode against stored value and responds with success/failure.
+  - On successful authentication, broadcasts `"AUTH_SUCCESS"` via WebSocket.
+
+---
+
 ## Dependency Flow Chart
 
 Below is the dependency flow chart showing the relationships between the modules:
