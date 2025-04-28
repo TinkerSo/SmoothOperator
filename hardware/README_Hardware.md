@@ -22,6 +22,7 @@ SmoothOperator is a full-scale robotic luggage assistant designed for dynamic ob
 - Jetson Nano ⇄ Arduino Mega ⇄ Motor Controllers
 - Sensor Bus (Ultrasonics, Limit Switches, Encoders)
 - Power Distribution from Batteries to Controllers)
+![Bi-Directional Communication](../images/power_distribution.png)
 ![Power Diagram](../images/power_distribution.png)
 
 ## 3. Bill of Materials (BOM)
