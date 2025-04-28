@@ -125,9 +125,7 @@ operation without restarting the navigation stack.
 
 Below is the dependency flow chart showing the relationships between the modules:
 
-```
-
-```
+![Software Diagram](https://github.com/TinkerSo/SmoothOperator/blob/main/images/SoftwareDiagram.png)
 
 ---
 
