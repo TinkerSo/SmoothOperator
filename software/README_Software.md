@@ -172,6 +172,11 @@ git clone https://github.com/TinkerSo/SmoothOperator.git
 ```
 
 ### 3. Install ROS Melodic via Binary
-![Link to Reference](https://wiki.ros.org/melodic/Installation/Ubuntu)
+The instructions below are directly from the [ROS wiki site](https://wiki.ros.org/melodic/Installation/Ubuntu)
 
+   ### 3.1 Configure your Ubuntu repositories
+      
+
+
+   
 ---
