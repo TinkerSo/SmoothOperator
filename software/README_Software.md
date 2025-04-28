@@ -126,8 +126,10 @@ operation without restarting the navigation stack.
 Below is the dependency flow chart showing the relationships between the modules:
 
 ![Software Diagram](https://github.com/TinkerSo/SmoothOperator/blob/main/images/SoftwareDiagram.png)
+*Navigation Stack Diagram*
 
 ![On-board UI Diagram](https://github.com/user-attachments/assets/d8726497-cb89-449b-9d33-eb0d3d1307cb)
+*On-board Robot UI Diagram*
 
 ---
 
