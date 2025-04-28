@@ -164,33 +164,14 @@ Ensure the following packages are installed on your system:
 - CMake 3.10.2 or higher
 - Make 4.1 or higher
 
+**Ensure your Ubuntu system is version 18.04.**
+
 ### 2. Clone the Repository
 ```bash
 git clone https://github.com/TinkerSo/SmoothOperator.git
-cd SmoothOperator/software
 ```
 
-### 3. Install Python Dependencies
-Create a virtual environment and install the required Python packages:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 4. Build C++ and Assembly Components
-Run the following commands to compile the C++ and Assembly code:
-```bash
-mkdir build
-cd build
-cmake ..
-make
-```
-
-### 5. Run the Software
-To start the main program:
-```bash
-python main.py
-```
+### 3. Install ROS Melodic via Binary
+![Link to Reference](https://wiki.ros.org/melodic/Installation/Ubuntu)
 
 ---
