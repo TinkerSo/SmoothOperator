@@ -22,7 +22,7 @@ The `software` directory contains the implementation of key functionalities desi
 
 The `NavigationStack` implements a 2D navigation system using ROS, which integrates odometry, sensor data, and goal poses to generate safe velocity commands for a mobile base. It includes the following key components:
 
-#### 1.2 **Sensor Data Node**
+### 2. **Sensor Data Node**
 
    - Purpose: Node that interfaces with the hardware sensors to provide real-time environmental and motion data.
    - Responsibilities:
@@ -126,10 +126,8 @@ operation without restarting the navigation stack.
 Below is the dependency flow chart showing the relationships between the modules:
 
 ![Software Diagram](https://github.com/TinkerSo/SmoothOperator/blob/main/images/SoftwareDiagram.png)
-*Navigation Stack Diagram*
 
 ![On-board UI Diagram](https://github.com/user-attachments/assets/d8726497-cb89-449b-9d33-eb0d3d1307cb)
-*On-board Robot UI Diagram*
 
 ---
 
