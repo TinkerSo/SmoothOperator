@@ -22,14 +22,6 @@ The `software` directory contains the implementation of key functionalities desi
 
 The `NavigationStack` implements a 2D navigation system using ROS, which integrates odometry, sensor data, and goal poses to generate safe velocity commands for a mobile base. It includes the following key components:
 
-- **Global and Local Planners**: Interfaces (`BaseGlobalPlanner`, `BaseLocalPlanner`) and implementations for path planning.
-- **SLAM Integration**: Modules, such as `slam_gmapping`, for simultaneous localization and mapping.
-- **NavFn Library**: Implements Dijkstra-based pathfinding algorithms.
-- **Hector SLAM**: Provides trajectory generation and map creation capabilities.
-- **Map Server**: A utility to manage and serve map data.
-
-Here’s a combined and summarized section for the `SmoothOperatorUI` directory, including details about `faceUI.py`, suitable for a `README.md` file:
-
 ### 2. **Sensor Data Node**
 
    - Purpose: Node that interfaces with the hardware sensors to provide real-time environmental and motion data.
@@ -90,6 +82,42 @@ where each cell in the grid holds a cost value indicating whether the area is
 free, occupied, or unknown, and whether it’s near an obstacle. Both
 costmaps also inflate a region around obstacles to create a buffer zone, so
 the robot doesn’t plan paths too close to walls or objects.
+
+### 8. **Path Planning Nodes**
+
+   - Purpose: Generates most efficient paths according to a set of criterias.
+   - Responsibilities:
+     - Global Planner: Generates a high-level path from the robot’s current pose
+to the goal, taking into account the global costmap to avoid static and
+restricted areas. It uses Dijkstra’s algorithm to compute the shortest path
+with cost-based weighting.
+     - Local Planner: Implements the Dynamic Window Approach (DWA) which
+considers multiple possible velocity commands and simulates the robot’s
+motion over a short time step for each sampled command. It evaluates the
+resulting trajectories using a cost function that balances multiple
+objectives (how well it follows the global path, if it is avoiding obstacles
+in the local costmap, and if the robot can fit through the path).
+
+### 9. **Recovery Behavior Node**
+
+   - Purpose: This node defines actions the robot should take when it becomes stuck or
+cannot make forward progress. Examples include reversing slightly,
+reattempting the global path from a new position, or clearing the local
+costmap.
+
+### 10. **Command Velocity Node**
+
+   - Purpose: This node subscribes to the velocity outputs produced by the local planner
+and sends them to the microcontroller (in our case, an Arduino) via a serial
+interface. The microcontroller then translates these commands into motor
+signals to drive the robot.
+
+### 11. **User Interface Communication Node**
+
+   - Purpose: This node facilitates communication between the robot and the user interface. It can
+receive destination commands from the user interface and relays them to
+the path planning nodes. This allows for dynamic goal-setting during
+operation without restarting the navigation stack.
 
 ---
 
