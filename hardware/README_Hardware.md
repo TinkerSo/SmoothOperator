@@ -14,7 +14,7 @@
 
 ---
 
-## 1. Hardware Overview
+## Hardware Overview
 This section provides a high-level summary of the physical and electrical systems that make up SmoothOperator, a semi-autonomous robotic luggage assistant designed for deployment in consumer environments such as airports.
 
 SmoothOperator's mechanical foundation is a modular aluminum frame constructed from 8020 T-slotted extrusions, designed for strength, modularity, and ease of assembly. The drivetrain is powered by high-torque DC motors through a custom gear reduction system, providing the necessary torque to transport heavy loads while maintaining a compact footprint and high maneuverability. A lifting mechanism, similar in principle to a forklift, allows the robot to elevate and secure luggage during transit.
@@ -25,7 +25,7 @@ Key sensory systems include ultrasonic sensors for obstacle detection, a LiDAR u
 
 Together, the mechanical, electrical, and software systems are integrated into a full end-to-end prototype capable of carrying loads over 50 pounds, traveling at speeds exceeding 1.2 meters per second, and autonomously responding to obstacles and environmental changes.
 
-## 2. System Block Diagram
+## System Block Diagram
 This block diagram shows how the controllers are communicating between the Jetson Nano and Arduino Mega. The Encoder data is fed from the Roboclaw motor controller to the Arduino to the Jetson Nano. Meanwhile, the Jetson Nano is giving movement commands to the Arduino, where it is translated and given to the Roboclaw motor controller.
 ![Bi-Directional Communication](../images/bi_directional.png)
 *Block Diagram of Bi-Directional Data Transfer between Processors.*
@@ -34,7 +34,7 @@ This is the block diagram for the power distribution. The 12V battery supplies a
 ![Power Diagram](../images/power_distribution.png)
 *Power Diagram Showing Power and Ground Connections.*
 
-## 3. Bill of Materials (BOM)
+## Bill of Materials (BOM)
 ### Note: Item prices may vary. Prices on BoM reflect the time when we purchased them.
 
 
@@ -91,7 +91,7 @@ This is the block diagram for the power distribution. The 12V battery supplies a
 
 ### **Total Cost**: $1,918.75
 
-## 4. Mechanical Design Overview
+## Mechanical Design Overview
 ### Frame
 The frame of SmoothOperator largely consists of 8020 T-slotted aluminum extrusions fastened into a U-shape using corner brackets and ¼”-20 screws. 1”x2” profile 8020 was used for the base to provide greater strength to the drivetrain and lower the center of gravity, improving stability. The rest of the frame was constructed from 1”x1” profile 8020 to balance cost and structural stability. The final frame dimensions are 2’x2’x4.25’, allowing the robot to carry luggage up to 14”x16”x30” in size.
 ![frame](../images/frame.jpg)
@@ -122,21 +122,21 @@ For additional safety, the robot is equipped with a floating bumper made of pool
 *Corner bumper assembly.*
 
 
-## 5. Schematics and CAD Files
+## Schematics and CAD Files
 - [Chassis CAD Model](./Version%202/)
 - [Sensor Mount CAD Drawings](./3D%20Print%20Sensor%20Enclosures/)
 - [Arduino Mega PCB Board Picture](../images/arduino_board.png)
 - [Electronics Wiring](../images/electronics.jpg)
 
 
-## 6. Power System Details
+## Power System Details
 - **Battery System**: Two 12V Lead Acid Batteries wired in parallel for increased capacity
 - **Operating Voltage**: 12V system voltage
 - **Peak Current Draw**: ~30A at startup (inrush), ~10A steady state
 - **Fuse Box**: Integrated fuse box protects each major subsystem separately
 - **Charging Notes**: Batteries must be charged individually or with a dual-bank 12V charger
 
-## 7. Assembly and Wiring Instructions
+## Assembly and Wiring Instructions
 Most of the electronics use 5V logic and low current, as they are just transferring signals. Hence, all signal wires are done with 22 AWG wire. The connections can be done either through solder, spade connectors, screw terminals, or other forms of connections.
 
 - Connect chassis components following CAD assembly drawings.
@@ -203,7 +203,7 @@ For more detailed assembly photos, see Section 8 below.
 
 
 
-## 8. Photos of Assembled System
+## Photos of Assembled System
 (Insert photos of completed system showing multiple angles:
 - Front view
 ![Front View](../images/final_prototype.jpg)
@@ -215,7 +215,7 @@ For more detailed assembly photos, see Section 8 below.
 ![camera](../images/sensor_suite.jpg)
 ![encoder](../images/encoder.jpg)
 
-## 9. Significant Datasheets and References
+## Significant Datasheets and References
 - [RoboClaw Motor Controller Datasheet (Link)](https://www.basicmicro.com/assets/documents/roboclaw_user_manual.pdf)
 - [Jetson Nano Developer Kit Datasheet (Link)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 - [Arduino Mega 2560 Datasheet (Link)](https://store.arduino.cc/products/arduino-mega-2560-rev3)
@@ -223,7 +223,7 @@ For more detailed assembly photos, see Section 8 below.
 - [RPLiDAR A1 (Link)](https://media.digikey.com/pdf/Data%20Sheets/DFRobot%20PDFs/DFR0315_Web.pdf)
 - [REV Through Bore Encoder (Link)](https://www.revrobotics.com/content/docs/REV-11-1271-DS.pdf)
 
-## 10. Future Hardware Recommendations
+## Future Hardware Recommendations
 - Upgrade to lithium-ion batteries for weight reduction and higher energy density.
 - Reinforce sensor mounts to better survive rough handling. Can be done with CNC milling of the sensor adapters.
 - Explore different wheel configurations and motors to handle rougher and uneven surfaces.
