@@ -219,6 +219,37 @@ The `SmoothOperatorApp` is a Kivy-based Python application running on a touchscr
 
 All audio used in the onboard UI is managed by the `SoundManager` class and played using `pygame.mixer`. Sound files are stored in the `/audio` directory and include voice prompts, feedback cues, and themed greetings for specific passengers.
 
+
+
+### 3.0 **Mobile App UI**
+
+The `UserUI` is a React Native application that allows users to remotely interact with the SmoothOperator™ system. It consists of intuitive interfaces designed to authenticate users and control the robot in real time through a WebSocket connection. This module is optimized for accessibility, responsiveness, and safety.
+
+---
+
+#### 3.1 **Passcode Page**
+
+- **Purpose:** Provides a secure gateway to access robot controls by requiring a valid 4-digit passcode, displayed on the onboard SmoothOperator screen.
+- **Responsibilities:**
+  - Displays a virtual numeric keypad for passcode input.
+  - Validates the entered passcode by sending it over a WebSocket connection to the SmoothOperator onboard system.
+  - Displays success or failure messages based on validation response.
+  - Offers a reset or backspace option for correcting mistyped digits.
+  - Prevents further interaction with control features until correct authentication is received.
+
+---
+
+#### 3.2 **Control Pad Page**
+
+- **Purpose:** Allows real-time remote control of the robot via directional and action-based buttons.
+- **Responsibilities:**
+  - Displays an on-screen directional pad with `Forward`, `Reverse`, `Left`, `Right`, and `Stop` buttons.
+  - Sends single-character commands (`w`, `a`, `s`, `d`, `x`) to the onboard system over WebSocket for navigation.
+  - Displays visual feedback indicating the current movement or status (e.g., “Moving Forward”).
+  - Optionally includes speed selection (Low/Medium/High) if implemented.
+  - Includes a large, visually distinct “STOP” button for immediate safety.
+  - Allows the user to return to the authentication screen or exit the session.
+
 ---
 
 ## Dependency Flow Chart
