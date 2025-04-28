@@ -5,14 +5,14 @@ Team 30
 # SmoothOperator - Engineering Addendum
 
 ## Table of Contents
-- [Project Overview](#project-overview)
-- [Current State of the Project](#current-state-of-the-project)
-- [System Architecture Overview](#system-architecture-overview)
-- [Gotchas and Important Notes for Future Teams](#gotchas-and-important-notes-for-future-teams)
-- [Setup and Quick Start Instructions](#setup-and-quick-start-instructions)
-- [Future Recommendations](#future-recommendations)
-- [Additional Documentation](#additional-documentation)
-- [Team Members](#team-members)
+1. [Project Overview](#project-overview)
+2. [Current State of the Project](#current-state-of-the-project)
+3. [System Architecture Overview](#system-architecture-overview)
+4. [Gotchas and Important Notes for Future Teams](#gotchas-and-important-notes-for-future-teams)
+5. [Setup and Quick Start Instructions](#setup-and-quick-start-instructions)
+6. [Future Recommendations](#future-recommendations)
+7. [Additional Documentation](#additional-documentation)
+8. [Team Members](#team-members)
 
 ---
 
