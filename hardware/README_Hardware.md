@@ -28,9 +28,11 @@ Together, the mechanical, electrical, and software systems are integrated into a
 ## 2. System Block Diagram
 This block diagram shows how the controllers are communicating between the Jetson Nano and Arduino Mega. The Encoder data is fed from the Roboclaw motor controller to the Arduino to the Jetson Nano. Meanwhile, the Jetson Nano is giving movement commands to the Arduino, where it is translated and given to the Roboclaw motor controller.
 ![Bi-Directional Communication](../images/bi_directional.png)
+*Block Diagram of Bi-Directional Data Transfer between Processors.*
 
 This is the block diagram for the power distribution. The 12V battery supplies are in parallel to garner more mAh while maintaining a consistent 12V to power all of the electronics. Additionally, the power source is attached directly to a fuse box for safety. These cables are all at least 14 AWG to support the maximum current any of the electronics draw. 
 ![Power Diagram](../images/power_distribution.png)
+*Power Diagram Showing Power and Ground Connections.*
 
 ## 3. Bill of Materials (BOM)
 ### Note: Item prices may vary. Prices on BoM reflect the time when we purchased them.
@@ -115,7 +117,7 @@ SmoothOperator’s lifting mechanism functions similarly to a forklift, utilizin
 ### Floating Bumper
 For additional safety, the robot is equipped with a floating bumper made of pool noodles mounted to perimeter limit switches. If the bumper is depressed in any direction, the limit switches immediately trigger a halt in the robot’s movement. This system enhances the robot’s ability to safely navigate crowded environments. The bumper slightly extends the robot's profile to 31”x31”.
 
-![bumper(../images/bumper.jpg)
+![bumper](../images/bumper.jpg)
 
 *Corner bumper assembly.*
 
