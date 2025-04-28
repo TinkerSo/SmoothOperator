@@ -174,10 +174,15 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 ## 8. Photos of Assembled System
 (Insert photos of completed system showing multiple angles:
 - Front view
+![Front View](../images/final_prototype.jpg)
 - Rear view
+![Rear View](../images/robot_full.png)
 - Electronics bay (open)
-- Underside motor wiring
-- Sensor mount close-ups)
+![electronics](../images/electronics.jpg)
+- Sensor mounts (close-ups)
+![camera](../images/sensor_suite.jpg)
+![bumpers](../images/bumper.jpg)
+![encoder](../images/encoder.jpg)
 
 ## 9. Significant Datasheets and References
 - [RoboClaw Motor Controller Datasheet (Link)](https://www.basicmicro.com/assets/documents/roboclaw_user_manual.pdf)
