@@ -23,7 +23,6 @@ SmoothOperator is a full-scale robotic luggage assistant designed for dynamic ob
 - Power Distribution from Batteries to Controllers)
 
 ## 3. Bill of Materials (BOM)
-## 3. Bill of Materials (BOM)
 
 | Item # | Description | Quantity | Unit Cost | Extended Cost |
 |:------:|:------------|:---------:|:---------:|:-------------:|
