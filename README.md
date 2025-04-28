@@ -18,7 +18,9 @@ Team 30
 
 ## Project Overview
 
-![SmoothOperator prototype fully assembled and operational.](https://github.com/user-attachments/assets/2bedc1f4-6bcd-478d-ab8f-67a9fdcd3274)
+![SmoothOperator prototype fully assembled and operational](https://github.com/user-attachments/assets/2bedc1f4-6bcd-478d-ab8f-67a9fdcd3274)
+
+*SmoothOperator prototype fully assembled and operational.*
 
 Post-COVID staffing shortages in the hospitality industry have increased mobility challenges for travelers with physical impairments, particularly regarding luggage transportation. With over 61 million Americans (26% of adults) living with disabilities, there is a significant need for assistive solutions. The hospitality sector has experienced a 38% reduction in workforce since 2019, with airport ground staff decreasing by 25%, further limiting available assistance. 
 
@@ -73,6 +75,9 @@ The software stack is built on ROS1 (Melodic) and integrates core navigation, lo
 All nodes communicate through ROS topics, and web API endpoints are used to interface with the user interface for dynamic route management.
 
 ![System architecture overview showing subsystem connections.](https://github.com/user-attachments/assets/6b65ac43-547f-48d7-abc9-0bd1be47d619)
+
+*System architecture overview showing subsystem connections.*
+
 
 ## Gotchas and Important Notes for Future Teams
 
