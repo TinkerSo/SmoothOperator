@@ -109,8 +109,8 @@ To get SmoothOperator operational:
 
 ## Additional Documentation
 
-- [Software Report (`README_SOFTWARE.md`)](./software/README_SOFTWARE.md)
-- [Hardware Report (`README_HARDWARE.md`)](./hardware/README_HARDWARE.md)
+- [Software Report (`README_SOFTWARE.md`)](./software/README_Software.md)
+- [Hardware Report (`README_HARDWARE.md`)](./hardware/README_Hardware.md)
 - [CAD Files and Mechanical Drawings](./cad/)
 - [Source Code](./software/)
 
