@@ -14,19 +14,26 @@
 
 ---
 
-## 1. Project Overview
-SmoothOperator is a full-scale robotic luggage assistant designed for dynamic obstacle avoidance and teleoperated control. The hardware system consists of a custom aluminum chassis, lifting mechanism, lead-acid battery pack, sensor suite, and motor control system integrated around a Jetson Nano and Arduino Mega controller stack.
+## 1. Hardware Overview
+This section provides a high-level summary of the physical and electrical systems that make up SmoothOperator, a semi-autonomous robotic luggage assistant designed for deployment in consumer environments such as airports.
+
+SmoothOperator's mechanical foundation is a modular aluminum frame constructed from 8020 T-slotted extrusions, designed for strength, modularity, and ease of assembly. The drivetrain is powered by high-torque DC motors through a custom gear reduction system, providing the necessary torque to transport heavy loads while maintaining a compact footprint and high maneuverability. A lifting mechanism, similar in principle to a forklift, allows the robot to elevate and secure luggage during transit.
+
+The electrical system is centered around a robust 12V DC architecture, with lead-acid batteries providing the main power supply. Electrical safety is enforced through a distributed fuse box and modular wiring layouts. High-level computation is performed on a Jetson Nano, while an Arduino Mega interfaces with sensors, actuators, and safety systems to ensure real-time responsiveness and redundancy.
+
+Key sensory systems include ultrasonic sensors for obstacle detection, a LiDAR unit for mapping and localization, a vision-based teleoperation camera, encoders for precise drivetrain feedback, and a floating bumper switch system for immediate collision detection. SmoothOperator also features RGB LED indicators and a touchscreen interface to enhance communication with users in dynamic, crowded environments.
+
+Together, the mechanical, electrical, and software systems are integrated into a full end-to-end prototype capable of carrying loads over 50 pounds, traveling at speeds exceeding 1.2 meters per second, and autonomously responding to obstacles and environmental changes.
 
 ## 2. System Block Diagram
-(Insert block diagram showing:
-- Jetson Nano ⇄ Arduino Mega ⇄ Motor Controllers
-- Sensor Bus (Ultrasonics, Limit Switches, Encoders)
-- Power Distribution from Batteries to Controllers)
+This block diagram shows how the controllers are communicating between the Jetson Nano and Arduino Mega. The Encoder data is fed from the Roboclaw motor controller to the Arduino to the Jetson Nano. Meanwhile, the Jetson Nano is giving movement commands to the Arduino, where it is translated and given to the Roboclaw motor controller.
 ![Bi-Directional Communication](../images/bi_directional.png)
+
+This is the block diagram for the power distribution. The 12V battery supplies are in parallel to garner more mAh while maintaining a consistent 12V to power all of the electronics. Additionally, the power source is attached directly to a fuse box for safety. These cables are all at least 14 AWG to support the maximum current any of the electronics draw. 
 ![Power Diagram](../images/power_distribution.png)
 
 ## 3. Bill of Materials (BOM)
-### Note: Item Prices may vary. Prices on BoM reflect the time when we purchased them.
+### Note: Item prices may vary. Prices on BoM reflect the time when we purchased them.
 
 
 | Item # | Description | Quantity | Unit Cost | Extended Cost |
@@ -80,21 +87,37 @@ SmoothOperator is a full-scale robotic luggage assistant designed for dynamic ob
 
 ---
 
-
 ### **Total Cost**: $1,918.75
 
 ## 4. Mechanical Design Overview
 ### Frame
 The frame of SmoothOperator largely consists of 8020 T-slotted aluminum extrusions fastened into a U-shape using corner brackets and ¼”-20 screws. 1”x2” profile 8020 was used for the base to provide greater strength to the drivetrain and lower the center of gravity, improving stability. The rest of the frame was constructed from 1”x1” profile 8020 to balance cost and structural stability. The final frame dimensions are 2’x2’x4.25’, allowing the robot to carry luggage up to 14”x16”x30” in size.
+![frame](./images/frame.jpg)
+
+*The chassis frame without electronics.*
 
 ### Drivetrain
 The drivetrain features two Colson Performa wheels mounted centrally and four caster wheels at the corners, totaling six wheels. The central drive wheels slightly tilt the robot backward to ensure continuous ground contact and assist with luggage retention during motion. The wheels' thermoplastic elastomer tread helps reject small debris. The positioning of the wheels enables the robot to perform 0° point turns. A 10:1 compound gear reduction system is implemented, using a combination of 15-tooth and 45-tooth pulleys and 15-tooth and 50-tooth gears, achieving the desired torque and speed characteristics. The robot can reach speeds of up to 1.2 meters per second with this setup.
 
+![gears](./images/drivetrain.jpg)
+
+*Assembly of 10:1 gear reduction with 3D printed parts and timing belts.*
+
+
 ### Lifting Mechanism
 SmoothOperator’s lifting mechanism functions similarly to a forklift, utilizing a linear actuator mounted to a fork assembly made from 8020 extrusions. This design allows luggage to be rolled above the forks while maintaining the robot’s center of mass. The forks are stabilized by PLA and ABS plastic sliders mounted onto the frame, with PLA sloped end caps providing a professional finish. The lifting system can lift and securely hold loads up to 80 pounds.
 
+![lifting](./images/lifting.jpg)
+
+*Lifting mechanism assembly made with 8020 extrusions and 3D printed linear sliders.*
+
+
 ### Floating Bumper
 For additional safety, the robot is equipped with a floating bumper made of pool noodles mounted to perimeter limit switches. If the bumper is depressed in any direction, the limit switches immediately trigger a halt in the robot’s movement. This system enhances the robot’s ability to safely navigate crowded environments. The bumper slightly extends the robot's profile to 31”x31”.
+
+![bumper(./images/bumper.jpg)
+
+*Corner bumper assembly.*
 
 
 ## 5. Schematics and CAD Files
@@ -185,7 +208,6 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 ![electronics](../images/electronics.jpg)
 - Sensor mounts (close-ups)
 ![camera](../images/sensor_suite.jpg)
-![bumpers](../images/bumper.jpg)
 ![encoder](../images/encoder.jpg)
 
 ## 9. Significant Datasheets and References
