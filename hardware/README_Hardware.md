@@ -225,12 +225,12 @@ For more detailed assembly photos, see Section 8 below.
 *Encoder*
 
 ## Significant Datasheets and References
-- [RoboClaw Motor Controller Datasheet (Link)](https://www.basicmicro.com/assets/documents/roboclaw_user_manual.pdf)
-- [Jetson Nano Developer Kit Datasheet (Link)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
-- [Arduino Mega 2560 Datasheet (Link)](https://store.arduino.cc/products/arduino-mega-2560-rev3)
-- [HC-SR04 Ultrasonic Sensor Datasheet (Link)](https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf)
-- [RPLiDAR A1 (Link)](https://media.digikey.com/pdf/Data%20Sheets/DFRobot%20PDFs/DFR0315_Web.pdf)
-- [REV Through Bore Encoder (Link)](https://www.revrobotics.com/content/docs/REV-11-1271-DS.pdf)
+- [RoboClaw Motor Controller Datasheet](https://www.basicmicro.com/assets/documents/roboclaw_user_manual.pdf)
+- [Jetson Nano Developer Kit Datasheet](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
+- [Arduino Mega 2560 Datasheet](https://store.arduino.cc/products/arduino-mega-2560-rev3)
+- [HC-SR04 Ultrasonic Sensor Datasheet](https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf)
+- [RPLiDAR A1](https://media.digikey.com/pdf/Data%20Sheets/DFRobot%20PDFs/DFR0315_Web.pdf)
+- [REV Through Bore Encoder](https://www.revrobotics.com/content/docs/REV-11-1271-DS.pdf)
 
 ## Future Hardware Recommendations
 - Upgrade to lithium-ion batteries for weight reduction and higher energy density.
