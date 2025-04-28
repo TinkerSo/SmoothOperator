@@ -2,7 +2,7 @@
 ECE Senior Design 2024–2025  
 Team 30
 
-# SmoothOperator - Engineering Addendum
+# Engineering Addendum
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
