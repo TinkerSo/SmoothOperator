@@ -134,18 +134,22 @@ Below is the dependency flow chart showing the relationships between the modules
 This project uses the following development and build tools:
 
 - **Languages**:
-  - Python 3.8 or higher
-  - C++ (GCC Compiler)
-  - Assembly
+  - Python 2.7 (standard for ROS1 Melodic)
+  - C++11 (via GCC 7.5.0)
 
 - **Build Tools**:
-  - Make 4.2.1
-  - CMake 3.21.2
+  - Catkin (build system for ROS packages)
+  - CMake 3.10.2
+  - Make 4.1
 
 - **Libraries**:
-  - OpenCV 4.5.2 (for image processing)
-  - NumPy 1.21.0 (for numerical computations)
-  - PySerial 3.5 (for serial communication)
+  - ROS Navigation Stack (move_base, amcl, map_server, etc.) - ROS Melodic versions
+  - Tf and tf2 libraries for coordinate frame transformations
+  - Costmap_2d (for 2D costmaps used in planning)
+  - Nav_msgs (for path planning and map data types)
+  - Sensor_msgs (for LiDAR and odometry message types)
+  - Geometry_msgs (for robot position and velocity messages)
+  - Slam_gmapping (mapping)
 
 ---
 
@@ -155,10 +159,10 @@ To set up the software stack from scratch, follow these steps:
 
 ### 1. Prerequisites
 Ensure the following packages are installed on your system:
-- Python 3.8 or higher
-- GCC 9.3.0 or higher
-- CMake 3.21.2 or higher
-- Make 4.2.1 or higher
+- Python 2.7
+- C++11 (via GCC 7.5.0)
+- CMake 3.10.2 or higher
+- Make 4.1 or higher
 
 ### 2. Clone the Repository
 ```bash
