@@ -132,7 +132,7 @@ For additional safety, the robot is equipped with a floating bumper made of pool
 ## Power System Details
 - **Battery System**: Two 12V Lead Acid Batteries wired in parallel for increased capacity
 - **Operating Voltage**: 12V system voltage
-- **Peak Current Draw**: ~30A at startup (inrush), ~10A steady state
+- **Peak Current Draw**: ~20A at startup (inrush), ~10A steady state
 - **Fuse Box**: Integrated fuse box protects each major subsystem separately
 - **Charging Notes**: Batteries must be charged individually or with a dual-bank 12V charger
 
@@ -215,7 +215,7 @@ For more detailed assembly photos, see Section 8 below.
 ![encoder](../images/encoder.jpg)
 
 ## Significant Datasheets and References
-- [RoboClaw Motor Controller Datasheet (Link)](https://www.basicmicro.com/assets/documents/roboclaw_user_manual.pdf)
+- [RoboClaw Motor Controller Datasheet (Link)](https://downloads.basicmicro.com/docs/roboclaw_datasheet_2x15A.pdf)
 - [Jetson Nano Developer Kit Datasheet (Link)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 - [Arduino Mega 2560 Datasheet (Link)](https://store.arduino.cc/products/arduino-mega-2560-rev3)
 - [HC-SR04 Ultrasonic Sensor Datasheet (Link)](https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf)
