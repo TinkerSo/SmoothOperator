@@ -94,10 +94,10 @@ For additional safety, the robot is equipped with a floating bumper made of pool
 
 
 ## 5. Schematics and CAD Files
-- [Electronics Wiring Diagram (PDF)](./hardware/wiring_diagram.pdf)
-- [Chassis CAD Model (STEP File)](./cad/chassis_model.step)
-- [Sensor Mount CAD Drawings (PDF)](./cad/sensor_mounts.pdf)
-- [Custom PCB Design Files (Eagle/KiCad)](./hardware/pcb_files/)
+- [Chassis CAD Model](./Version 2)
+- [Sensor Mount CAD Drawings](./cad/3D Print Sensor Enclosures)
+- [Arduino Mega PCB Board Picture](../images/arduino_board.png)
+- [Electronics Wiring](../images/electronics.jpg)
 
 Original design files (.f3d, .step, .kicad_pcb) are included alongside PDFs for easier modification by future teams.
 
