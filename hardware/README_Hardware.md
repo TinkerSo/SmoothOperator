@@ -95,7 +95,7 @@ For additional safety, the robot is equipped with a floating bumper made of pool
 
 ## 5. Schematics and CAD Files
 - [Chassis CAD Model](./Version%202/)
-- [Sensor Mount CAD Drawings](./cad/3D%20Print%20Sensor%20Enclosures/)
+- [Sensor Mount CAD Drawings](./3D%20Print%20Sensor%20Enclosures/)
 - [Arduino Mega PCB Board Picture](../images/arduino_board.png)
 - [Electronics Wiring](../images/electronics.jpg)
 
