@@ -222,9 +222,9 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 
 ## 10. Future Hardware Recommendations
 - Upgrade to lithium-ion batteries for weight reduction and higher energy density.
-- Reinforce sensor mounts to better survive rough handling.
-- Explore waterproof enclosures if outdoor use is expected.
-- Add a battery monitoring circuit to report real-time voltage and prevent deep discharge.
+- Reinforce sensor mounts to better survive rough handling. Can be done with CNC milling of the sensor adapters.
+- Explore different wheel configurations and motors to handle rougher and uneven surfaces.
+- Add a battery monitoring circuit to report real-time voltage and power left.
 
 ---
 
