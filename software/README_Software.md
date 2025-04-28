@@ -250,6 +250,75 @@ The `UserUI` is a React Native application that allows users to remotely interac
 
 ---
 
+### 4.0 **Arduino Firmware**
+
+The Arduino microcontroller runs low-level firmware that controls the SmoothOperator™ robot’s motors, LEDs, lift system, ultrasonic sensors, and bump switches. It serves as the interface between high-level commands received from the onboard computer and the hardware peripherals, translating movement and control instructions into real-time actuation and feedback.
+
+#### 4.1 **Motion Control System**
+
+- **Purpose:** Drives the left and right wheels via RoboClaw motor drivers based on velocity and angular rotation commands.
+- **Responsibilities:**
+  - Parses serial input in the format: `Vx Vy Vtheta lift`, with each float formatted to exactly three decimal places.
+  - Converts linear and angular velocity commands using tank drive kinematics.
+  - Calculates and sends appropriate `QPPS` (quadrature pulses per second) to RoboClaw’s `M1` and `M2` channels.
+  - Updates NeoPixel LEDs to indicate motion (green = moving, red = idle).
+  - Implements encoder feedback to compute and send displacement and velocity data over `Serial1`.
+
+#### 4.2 **Lift System Control**
+
+- **Purpose:** Manages vertical actuation of the luggage platform using an L298N H-bridge motor driver.
+- **Responsibilities:**
+  - Accepts lift commands as a float (`>0` for up, `<0` for down, `0` for stop).
+  - Drives digital output pins (`IN1`, `IN2`, `ENA`) to set motor direction and PWM speed.
+  - Stops the motor automatically when no lift command is present.
+  - Uses analog PWM to control lift speed.
+
+#### 4.3 **Obstacle Detection System**
+
+- **Purpose:** Prevents collisions by monitoring surrounding obstacles using bump switches and ultrasonic sonar.
+- **Responsibilities:**
+  - Monitors four bumper inputs (`FRONT_BUMP`, `BACK_BUMP`, `LEFT_BUMP`, `RIGHT_BUMP`).
+  - Reads sonar distance using the NewPing library (TRIG/ECHO pins).
+  - Immediately halts motor commands and sets LEDs to red when any obstacle is detected.
+
+#### 4.4 **LED Feedback System**
+
+- **Purpose:** Provides visual cues for robot status using a NeoPixel LED strip.
+- **Responsibilities:**
+  - `Green`: Robot is actively moving.
+  - `Red`: Robot is idle or has detected an obstacle.
+  - Controlled using Adafruit NeoPixel library (`LED_PIN` with 300 RGB LEDs).
+  - Color and brightness updated in real-time based on robot state.
+
+#### 4.5 **Serial Communication Protocol**
+
+- **Purpose:** Enables high-level systems (e.g., Jetson Nano) to send commands to the Arduino for execution.
+- **Responsibilities:**
+  - Listens to `Serial` input formatted as: `Vx Vy Vtheta lift`.
+  - Validates input for correct spacing and 3-decimal precision.
+  - Outputs encoder-based speed and displacement metrics over `Serial1` for real-time monitoring or logging.
+
+#### 4.6 **Roboclaw Motor Driver Integration**
+
+- **Purpose:** Interfaces with RoboClaw over software serial to control high-power DC motors with encoder feedback.
+- **Responsibilities:**
+  - Initializes velocity PID parameters using `SetM1VelocityPID` and `SetM2VelocityPID`.
+  - Resets encoders on startup.
+  - Reads encoder ticks and speeds to derive physical movement characteristics (velocity and displacement).
+  - Uses RoboClaw's M1 (right) and M2 (left) for directional drive control.
+
+#### 4.7 **Startup Behavior**
+
+- **Purpose:** Safely initializes all components on boot.
+- **Responsibilities:**
+  - Starts serial communication (`Serial` and `Serial1`).
+  - Initializes LED strip with default red color.
+  - Configures motor pins and RoboClaw PID parameters.
+  - Resets encoders and ensures robot is stationary.
+  - Prints status messages to `Serial`.
+
+---
+
 ## Dependency Flow Chart
 
 Below is the dependency flow chart showing the relationships between the modules:
