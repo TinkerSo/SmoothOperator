@@ -1,16 +1,16 @@
 # SmoothOperator - Hardware Report
 
 ## Table of Contents
-1. [Project Overview](#project-overview)
-2. [System Block Diagram](#system-block-diagram)
-3. [Bill of Materials (BOM)](#bill-of-materials-bom)
-4. [Mechanical Design Overview](#mechanical-design-overview)
-5. [Schematics and CAD Files](#schematics-and-cad-files)
-6. [Power System Details](#power-system-details)
-7. [Assembly and Wiring Instructions](#assembly-and-wiring-instructions)
-8. [Photos of Assembled System](#photos-of-assembled-system)
-9. [Significant Datasheets and References](#significant-datasheets-and-references)
-10. [Future Hardware Recommendations](#future-hardware-recommendations)
+- [1. Project Overview](#1-project-overview)
+- [2. System Block Diagram](#2-system-block-diagram)
+- [3. Bill of Materials (BOM)](#3-bill-of-materials-bom)
+- [4. Mechanical Design Overview](#4-mechanical-design-overview)
+- [5. Schematics and CAD Files](#5-schematics-and-cad-files)
+- [6. Power System Details](#6-power-system-details)
+- [7. Assembly and Wiring Instructions](#7-assembly-and-wiring-instructions)
+- [8. Photos of Assembled System](#8-photos-of-assembled-system)
+- [9. Significant Datasheets and References](#9-significant-datasheets-and-references)
+- [10. Future Hardware Recommendations](#10-future-hardware-recommendations)
 
 ---
 
