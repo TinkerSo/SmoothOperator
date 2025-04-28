@@ -28,54 +28,58 @@ SmoothOperator is a full-scale robotic luggage assistant designed for dynamic ob
 ## 3. Bill of Materials (BOM)
 ### Note: Item Prices may vary. Prices on BoM reflect the time when we purchased them.
 
+
 | Item # | Description | Quantity | Unit Cost | Extended Cost |
 |:------:|:------------|:---------:|:---------:|:-------------:|
-| 1 | Clamping Shaft Collar - 1/2" Hex ID | 4 | $0.99 | $3.96 |
-| 2 | 8020 1"x2" T-Slotted Aluminum Extrusion, 72" | 3 | $47.43 | $142.29 |
-| 3 | 8020 1"x1" T-Slotted Aluminum Extrusion, 72" | 5 | $33.25 | $166.25 |
-| 4 | 85t Timing Belt (HTD 5mm) | 2 | $6.99 | $13.98 |
-| 5 | 2" High Double Rail End Caps | 6 | $3.05 | $18.30 |
-| 6 | 6061 Aluminum U-Channel (1 ft) | 1 | $9.55 | $9.55 |
-| 7 | High Torque DC Motors (12V/24V) | 2 | $25.79 | $51.58 |
-| 8 | Flanged Bearings (0.500" Hex ID) | 6 | $1.49 | $8.94 |
-| 9 | Aluminum Pulley 15t (HTD 5mm) | 4 | $9.99 | $39.96 |
-| 10 | Stainless Button Head Hex Screws | 2 | $6.76 | $13.52 |
-| 11 | T-Slotted Framing End-Feed Nuts | 3 | $7.83 | $23.49 |
-| 12 | ⅛” Custom Laser-Cut Acrylic Sheets | 1 | $288.26 | $288.26 |
-| 13 | Caster Wheels | 4 | $7.65 | $30.60 |
-| 14 | Colson Performa Wheels (4"x0.875") | 2 | $7.49 | $14.98 |
-| 15 | 1/2" OD Hex Stock (18") | 1 | $4.49 | $4.49 |
-| 16 | 90° 8020 Brackets | 12 | $8.00 | $96.00 |
+| 1 | [Clamping Shaft Collar - 1/2" Hex ID](https://wcproducts.com/products/wcp-0324) | 4 | $0.99 | $3.96 |
+| 2 | [8020 1"x2" T-Slotted Aluminum Extrusion, 72"](https://www.globalindustrial.com/p/102072-1-x-2-tslotted-profile-72-stock-bar) | 3 | $47.43 | $142.29 |
+| 3 | [8020 1"x1" T-Slotted Aluminum Extrusion, 72"](https://www.globalindustrial.com/p/101072-1-x-1-tslotted-profile-72-stock-bar) | 5 | $33.25 | $166.25 |
+| 4 | [85t Timing Belt (HTD 5mm)](https://wcproducts.com/products/wcp-0064) | 2 | $6.99 | $13.98 |
+| 5 | [2" High Double Rail End Caps](https://americasfencestore.com/products/two-hole-steel-rail-end-2) | 6 | $3.05 | $18.30 |
+| 6 | [6061 Aluminum U-Channel (1 ft)](https://www.metalsdepot.com/aluminum-products/aluminum-channel-6061) | 1 | $9.55 | $9.55 |
+| 7 | [High Torque DC Motors (12V/24V)](https://www.banebots.com/product/M5-RS550-12-1) | 2 | $25.79 | $51.58 |
+| 8 | [Flanged Bearings (0.500" Hex ID)](https://wcproducts.com/products/wcp-0045) | 6 | $1.49 | $8.94 |
+| 9 | [Aluminum Pulley 15t (HTD 5mm)](https://wcproducts.com/products/wcp-0562) | 4 | $9.99 | $39.96 |
+| 10 | [Stainless Button Head Hex Screws](https://www.mcmaster.com/92949A145/) | 2 | $6.76 | $13.52 |
+| 11 | [T-Slotted Framing End-Feed Nuts](https://8020.net/3285.html) | 3 | $7.83 | $23.49 |
+| 12 | [⅛” Custom Laser-Cut Acrylic Sheets](https://www.tapplastics.com/product/plastics/cut_to_size_plastic/acrylic_sheets/143) | 1 | $288.26 | $288.26 |
+| 13 | [Caster Wheels](https://www.amazon.com/dp/B07JG9T9BX) | 4 | $7.65 | $30.60 |
+| 14 | [Colson Performa Wheels (4"x0.875")](https://wcproducts.com/products/wcp-0233) | 2 | $7.49 | $14.98 |
+| 15 | [1/2" OD Hex Stock (18")](https://wcproducts.com/products/wcp-0025) | 1 | $4.49 | $4.49 |
+| 16 | [90° 8020 Brackets](https://8020.net/4332.html) | 12 | $8.00 | $96.00 |
 | 17 | PLA 3D Printed Parts | 1 | $3.00 | $3.00 |
 | 18 | ABS 3D Printed Parts | 1 | $2.16 | $2.16 |
-| 19 | 12V 6” DC Linear Actuator | 1 | $30.99 | $30.99 |
-| 20 | Pool Noodles | 4 | $1.25 | $5.00 |
-| 21 | RoboClaw Motor Controller | 1 | $99.99 | $99.99 |
-| 22 | REV Through Bore Encoders | 2 | $49.00 | $105.53 |
-| 23 | SparkFun 9DoF IMU | 1 | $18.50 | $18.50 |
-| 24 | 6-Circuit 12V Fuse Box | 1 | $21.99 | $21.99 |
-| 25 | Arduino Mega 2560 R3 | 1 | $22.99 | $22.99 |
-| 26 | Jetson Nano (4GB RAM, 16GB Storage) | 1 | $229.99 | $229.99 |
-| 27 | FT232RL USB to TTL Adapter | 1 | $6.49 | $6.49 |
-| 28 | USB 3.0 Hub | 1 | $6.36 | $6.36 |
-| 29 | Touchscreen Monitor | 1 | $127.49 | $127.49 |
-| 30 | WS2812B RGB LED Strip (300 Pixels) | 1 | $22.99 | $22.99 |
-| 31 | Arduino Uno R3 | 1 | $14.99 | $14.99 |
-| 32 | HC-SR04 Ultrasonic Sensors | 3 | $1.91 | $5.73 |
-| 33 | Logitech C270 HD Webcam | 1 | $19.99 | $19.99 |
-| 34 | L298N Motor Driver | 1 | $6.19 | $6.19 |
-| 35 | RPLiDAR A1 | 1 | $99.00 | $99.00 |
-| 36 | NO Limit Switches | 8 | $1.29 | $10.32 |
-| 37 | 12V12A Lead-Acid Batteries (2-Pack) | 1 | $39.99 | $39.99 |
-| 38 | Male DC Barrel Jack Connectors | 2 | $2.00 | $4.00 |
-| 39 | Female DC Barrel Jack Connectors | 3 | $2.00 | $6.00 |
-| 40 | 22AWG Solid Core Wires (variety) | 1 | $10.00 | $10.00 |
-| 41 | 12V to 5V 4A Power Step-Down Converter | 1 | $8.99 | $8.99 |
-| 42 | Radio E-Stop | 1 | $15.99 | $15.99 |
+| 19 | [12V 6” DC Linear Actuator](https://www.progressiveautomations.com/products/pa-14-mini-linear-actuator) | 1 | $30.99 | $30.99 |
+| 20 | [Pool Noodles](https://www.amazon.com/dp/B07P8KKNHV) | 4 | $1.25 | $5.00 |
+| 21 | [RoboClaw Motor Controller](https://www.basicmicro.com/roboclaw-2x15a-robot-controller_p_46.html) | 1 | $99.99 | $99.99 |
+| 22 | [REV Through Bore Encoders](https://www.revrobotics.com/rev-11-1271/) | 2 | $49.00 | $98.00 |
+| 23 | [SparkFun 9DoF IMU](https://www.sparkfun.com/products/14001) | 1 | $18.50 | $18.50 |
+| 24 | [6-Circuit 12V Fuse Box](https://www.amazon.com/dp/B07D9BNSZM) | 1 | $21.99 | $21.99 |
+| 25 | [Arduino Mega 2560 R3](https://store.arduino.cc/products/arduino-mega-2560-rev3) | 1 | $22.99 | $22.99 |
+| 26 | [Jetson Nano Developer Kit (4GB RAM)](https://developer.nvidia.com/embedded/jetson-nano-developer-kit) | 1 | $229.99 | $229.99 |
+| 27 | [FT232RL USB to TTL Adapter](https://www.amazon.com/dp/B07BBPX8B8) | 1 | $6.49 | $6.49 |
+| 28 | [USB 3.0 Hub](https://www.amazon.com/dp/B00E6GX4BG) | 1 | $6.36 | $6.36 |
+| 29 | [Touchscreen Monitor](https://www.amazon.com/dp/B085J6B2TP) | 1 | $127.49 | $127.49 |
+| 30 | [WS2812B RGB LED Strip (300 LEDs)](https://www.amazon.com/dp/B01CDTEJBG) | 1 | $22.99 | $22.99 |
+| 31 | [Arduino Uno R3](https://store.arduino.cc/products/arduino-uno-rev3) | 1 | $14.99 | $14.99 |
+| 32 | [HC-SR04 Ultrasonic Sensors](https://www.sparkfun.com/products/15569) | 3 | $1.91 | $5.73 |
+| 33 | [Logitech C270 HD Webcam](https://www.logitech.com/en-us/products/webcams/c270-hd-webcam.960-000694.html) | 1 | $19.99 | $19.99 |
+| 34 | [L298N Motor Driver](https://www.amazon.com/dp/B00M1PMQG0) | 1 | $6.19 | $6.19 |
+| 35 | [RPLiDAR A1](https://www.slamtec.com/en/Lidar/A1) | 1 | $99.00 | $99.00 |
+| 36 | [NO Limit Switches](https://www.amazon.com/dp/B01MTBESDD) | 8 | $1.29 | $10.32 |
+| 37 | [12V12A Lead-Acid Batteries (2-Pack)](https://www.amazon.com/dp/B00K8V2YZC) | 1 | $39.99 | $39.99 |
+| 38 | [Male DC Barrel Jack Connectors](https://www.amazon.com/dp/B07Q2PSJ1R) | 2 | $2.00 | $4.00 |
+| 39 | [Female DC Barrel Jack Connectors](https://www.amazon.com/dp/B07Q2PSJ1R) | 3 | $2.00 | $6.00 |
+| 40 | [22AWG Solid Core Wires (variety)](https://www.amazon.com/dp/B01MTBESDD) | 1 | $10.00 | $10.00 |
+| 41 | [12V to 5V 4A Step-Down Converter](https://www.amazon.com/dp/B07MZKF7P4) | 1 | $8.99 | $8.99 |
+| 42 | [Radio E-Stop (Wireless)](https://www.amazon.com/dp/B09FFWSK5H) | 1 | $15.99 | $15.99 |
 | 43 | Custom Arduino Mega PCB Board | 1 | $1.29 | $1.29 |
-| 44 | Screw Terminals (various sizes) | 8 | $0.50 | $4.00 |
-| 45 | Female Spade Connectors | 14 | $0.69 | $9.66 |
-| 46 | Intelligent 12V/24V Battery Charger | 1 | $32.99 | $32.99 |
+| 44 | [Screw Terminals (various sizes)](https://www.amazon.com/dp/B07FXZY3MG) | 8 | $0.50 | $4.00 |
+| 45 | [Female Spade Connectors](https://www.amazon.com/dp/B07FXZY3MG) | 14 | $0.69 | $9.66 |
+| 46 | [Intelligent 12V/24V Battery Charger](https://www.amazon.com/dp/B07VTP8PP7) | 1 | $32.99 | $32.99 |
+
+---
+
 
 ### **Total Cost**: $1,918.75
 
