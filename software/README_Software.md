@@ -22,7 +22,7 @@ The `software` directory contains the implementation of key functionalities desi
 
 The `NavigationStack` implements a 2D navigation system using ROS, which integrates odometry, sensor data, and goal poses to generate safe velocity commands for a mobile base. It includes the following key components:
 
-### 2. **Sensor Data Node**
+#### 1.2 **Sensor Data Node**
 
    - Purpose: Node that interfaces with the hardware sensors to provide real-time environmental and motion data.
    - Responsibilities:
