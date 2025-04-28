@@ -3,11 +3,11 @@ ECE Senior Design 2024-2025
 Team 30
 
 ## Table of Contents
-1. [Overview](#overview)
-2. [Software Modules](#software-modules)
-3. [Dependency Flow Chart](#dependency-flow-chart)
-4. [Development and Build Tools](#development-and-build-tools)
-5. [Installation Instructions](#installation-instructions)
+[Overview](#overview)
+[Software Modules](#software-modules)
+[Dependency Flow Chart](#dependency-flow-chart)
+[Development and Build Tools](#development-and-build-tools)
+[Installation Instructions](#installation-instructions)
 
 ---
 
