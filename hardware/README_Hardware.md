@@ -207,7 +207,7 @@ For more detailed assembly photos, see Section 8 below.
 - Front view
 ![Front View](../images/final_prototype.jpg)
 - Rear view
-![Rear View](../images/robot_full.png)
+![Rear View](https://github.com/TinkerSo/SmoothOperator/blob/main/images/robot_full.jpg)
 - Electronics bay (open)
 ![electronics](../images/electronics.jpg)
 - Sensor mounts (close-ups)
