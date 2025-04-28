@@ -138,14 +138,18 @@ Original design files (.f3d, .step, .kicad_pcb) are included alongside PDFs for 
 - **Charging Notes**: Batteries must be charged individually or with a dual-bank 12V charger
 
 ## 7. Assembly and Wiring Instructions
+Most of the electronics use 5V logic and low current, as they are just transferring signals. Hence, all signal wires are done with 22 AWG wire. The connections can be done either through solder, spade connectors, screw terminals, or other forms of connections.
+
 - Connect chassis components following CAD assembly drawings.
-- Mount motor controllers securely inside acrylic electronics bay.
-- Wire ultrasonic sensors and limit switches to the Arduino Mega via the custom PCB.
+- Mount motor controllers securely inside acrylic electronics.
+- Wire ultrasonic sensors and limit switches to the Arduino Mega via the custom Arduino Mega Board. Follow the table below for pin in and out.
 - Connect the Jetson Nano to the Arduino Mega using UART cables, ensuring correct baud rate configuration.
 - Connect motor controller outputs to the drive motors.
-- Double-check all wire crimps and connector polarities before initial power-up.
+- Double-check all wire crimps and connector polarities before initial power-up to the table attached below.
 
-For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
+### Wiring Tip: Use various colored wires and stay consistent with color, such as black for ground and red for power. Lastly, screw terminals and spade connectors help with modularity while maintaining secure connections making it easier to debug. To debug, utilize an oscilloscope for signal and a multimeter for power.
+
+For more detailed assembly photos, see Section 8 below.
 
 ### Arduino Mega Pin Mapping
 
