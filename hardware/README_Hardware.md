@@ -128,7 +128,6 @@ For additional safety, the robot is equipped with a floating bumper made of pool
 - [Arduino Mega PCB Board Picture](../images/arduino_board.png)
 - [Electronics Wiring](../images/electronics.jpg)
 
-Original design files (.f3d, .step, .kicad_pcb) are included alongside PDFs for easier modification by future teams.
 
 ## 6. Power System Details
 - **Battery System**: Two 12V Lead Acid Batteries wired in parallel for increased capacity
