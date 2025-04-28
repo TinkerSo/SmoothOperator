@@ -119,6 +119,8 @@ receive destination commands from the user interface and relays them to
 the path planning nodes. This allows for dynamic goal-setting during
 operation without restarting the navigation stack.
 
+---
+
 ### 2.0 **Onboard UI System**
 
 The `SmoothOperatorApp` is a Kivy-based Python application running on a touchscreen device (e.g., Jetson Nano with display) that serves as the primary onboard interface for the SmoothOperator™ robot. It handles user interactions, boarding pass scanning, robot control, and communication with the server over HTTP and WebSocket protocols.
@@ -219,13 +221,11 @@ The `SmoothOperatorApp` is a Kivy-based Python application running on a touchscr
 
 All audio used in the onboard UI is managed by the `SoundManager` class and played using `pygame.mixer`. Sound files are stored in the `/audio` directory and include voice prompts, feedback cues, and themed greetings for specific passengers.
 
-
+---
 
 ### 3.0 **Mobile App UI**
 
 The `UserUI` is a React Native application that allows users to remotely interact with the SmoothOperator™ system. It consists of intuitive interfaces designed to authenticate users and control the robot in real time through a WebSocket connection. This module is optimized for accessibility, responsiveness, and safety.
-
----
 
 #### 3.1 **Passcode Page**
 
@@ -236,8 +236,6 @@ The `UserUI` is a React Native application that allows users to remotely interac
   - Displays success or failure messages based on validation response.
   - Offers a reset or backspace option for correcting mistyped digits.
   - Prevents further interaction with control features until correct authentication is received.
-
----
 
 #### 3.2 **Control Pad Page**
 
