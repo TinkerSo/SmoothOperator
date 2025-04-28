@@ -18,11 +18,11 @@ The `software` directory contains the implementation of key functionalities desi
 
 ## Software Modules
 
-### 1. **Navigation Stack**
+### 1.0 **Navigation Stack**
 
 The `NavigationStack` implements a 2D navigation system using ROS, which integrates odometry, sensor data, and goal poses to generate safe velocity commands for a mobile base. It includes the following key components:
 
-### 2. **Sensor Data Node**
+### 1.1 **Sensor Data Node**
 
    - Purpose: Node that interfaces with the hardware sensors to provide real-time environmental and motion data.
    - Responsibilities:
@@ -32,14 +32,14 @@ representing the surrounding environment. The LiDAR scans in a
      - Wheel Encoder & IMU Node: Reads and publishes raw odometry
 data, including displacement, velocity, and orientation.
 
-### 3. **Odometry Node**
+### 1.2 **Odometry Node**
 
    - Purpose: This node uses the data from the wheel encoders and IMU to calculate the
 robot’s position and orientation over time via dead reckoning. The
 differential drive kinematics model considers the physical wheelbase and
 updates the robot’s estimated trajectory.
 
-### 4. **Mapping Node**
+### 1.3 **Mapping Node**
 
    - Purpose: Creates a mapping of the environment.- Responsibilities:
      - Constructs a static 2D occupancy grid map using SLAM
@@ -50,7 +50,7 @@ own map of the environment.
      - The user/operator is able to annotate the map after it is produced to correct
 minor blemishes or mark new environment obstacles.
 
-### 5. **Localization Node**
+### 1.4 **Localization Node**
 
    - Purpose: Estimates the robot’s current position with respect to the
 pre-built map by using Monte Carlo Localization (AMCL).
@@ -60,14 +60,14 @@ odometry-based coordinate frame (odom) with the map-based global
 frame (map), allowing for accurate path planning and correction of
 accumulated drift (known issue for dead reckoning). 
 
-### 6. **Transform (TF) Nodes**
+### 1.5 **Transform (TF) Nodes**
 
    - Purpose: TF nodes maintain a dynamic tree of coordinate frames between
 the robot base, its sensors, and the world. These transforms enable
 seamless integration of sensor data and motion commands by keeping all
 information spatially aligned.
 
-### 7. **Costmap Nodes**
+### 1.6 **Costmap Nodes**
 
    - Purpose: Maintain a representation of the environment by using an occupancy grid.
    - Responsibilities:
@@ -83,7 +83,7 @@ free, occupied, or unknown, and whether it’s near an obstacle. Both
 costmaps also inflate a region around obstacles to create a buffer zone, so
 the robot doesn’t plan paths too close to walls or objects.
 
-### 8. **Path Planning Nodes**
+### 1.7 **Path Planning Nodes**
 
    - Purpose: Generates most efficient paths according to a set of criterias.
    - Responsibilities:
@@ -98,21 +98,21 @@ resulting trajectories using a cost function that balances multiple
 objectives (how well it follows the global path, if it is avoiding obstacles
 in the local costmap, and if the robot can fit through the path).
 
-### 9. **Recovery Behavior Node**
+### 1.8 **Recovery Behavior Node**
 
    - Purpose: This node defines actions the robot should take when it becomes stuck or
 cannot make forward progress. Examples include reversing slightly,
 reattempting the global path from a new position, or clearing the local
 costmap.
 
-### 10. **Command Velocity Node**
+### 1.9 **Command Velocity Node**
 
    - Purpose: This node subscribes to the velocity outputs produced by the local planner
 and sends them to the microcontroller (in our case, an Arduino) via a serial
 interface. The microcontroller then translates these commands into motor
 signals to drive the robot.
 
-### 11. **User Interface Communication Node**
+### 1.10 **User Interface Communication Node**
 
    - Purpose: This node facilitates communication between the robot and the user interface. It can
 receive destination commands from the user interface and relays them to
