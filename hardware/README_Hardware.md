@@ -101,6 +101,59 @@ Original design files (.f3d, .step, .kicad_pcb) are included alongside PDFs for 
 
 For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 
+## Arduino Mega Pin Mapping
+
+| Arduino Pin | Connected Device | Notes |
+|:-----------:|:-----------------|:------|
+| D2           | Left Bumper Switch | Digital Input (Normally Closed) |
+| D3           | Right Bumper Switch | Digital Input (Normally Closed) |
+| D4           | Front Bumper Switch | Digital Input (Normally Closed) |
+| D5           | Rear Bumper Switch | Digital Input (Normally Closed) |
+| D6           | Left Encoder Channel A | Interrupt Pin |
+| D7           | Left Encoder Channel B | |
+| D8           | Right Encoder Channel A | Interrupt Pin |
+| D9           | Right Encoder Channel B | |
+| D10          | Ultrasonic Sensor 1 - Trigger | |
+| D11          | Ultrasonic Sensor 1 - Echo | |
+| D12          | Ultrasonic Sensor 2 - Trigger | |
+| D13          | Ultrasonic Sensor 2 - Echo | |
+| D22          | Ultrasonic Sensor 3 - Trigger | |
+| D23          | Ultrasonic Sensor 3 - Echo | |
+| D24          | Ultrasonic Sensor 4 - Trigger | |
+| D25          | Ultrasonic Sensor 4 - Echo | |
+| D30          | LED Strip Control Signal | WS2812B RGB LED Strip |
+| RX1 (19)     | Serial Receive from Jetson Nano | UART1 |
+| TX1 (18)     | Serial Transmit to Jetson Nano | UART1 |
+| RX2 (17)     | Serial Receive from Motor Controller | UART2 |
+| TX2 (16)     | Serial Transmit to Motor Controller | UART2 |
+
+## Jetson Nano Pin Mapping
+
+| Jetson Nano Port | Connected Device | Notes |
+|:----------------:|:-----------------|:------|
+| USB Port 1        | Arduino Mega (Control Link) | Through FT232 USB-UART Adapter |
+| USB Port 2        | RPLiDAR A1 | LiDAR Obstacle Mapping |
+| USB Port 3        | Logitech C270 Webcam | For teleoperator vision |
+| USB Port 4        | Touchscreen Display | UI Display Output |
+
+## Motor Controller (RoboClaw)
+
+| RoboClaw Signal | Connected Device | Notes |
+|:---------------:|:-----------------|:------|
+| S1 RX           | TX from Arduino Mega (Motor Commands) | UART2 |
+| S1 TX           | RX to Arduino Mega (Feedback Data) | UART2 |
+| M1 Outputs      | Left Drive Motor | PWM Motor Control |
+| M2 Outputs      | Right Drive Motor | PWM Motor Control |
+
+## Power Distribution
+
+| Power Rail | Connected Device | Notes |
+|:----------:|:-----------------|:------|
+| 12V Rail   | Motors, RoboClaw, Arduino Mega (VIN) | From parallel battery bank |
+| 5V Rail    | Ultrasonic Sensors, LEDs, Camera | Through Buck Converter (12V → 5V) |
+
+
+
 ## 7. Photos of Assembled System
 (Insert photos of completed system showing multiple angles:
 - Front view
