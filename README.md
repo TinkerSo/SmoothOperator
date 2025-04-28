@@ -1,8 +1,19 @@
 # SmoothOperator
-ECE Senior Design 2024-2025
+ECE Senior Design 2024-2025  
 Team 30
 
 # SmoothOperator - Engineering Addendum
+
+## Table of Contents
+- [1. Project Overview](#1-project-overview)
+- [2. Current State of the Project](#2-current-state-of-the-project)
+- [3. System Architecture Overview](#3-system-architecture-overview)
+- [4. Gotchas and Important Notes for Future Teams](#4-gotchas-and-important-notes-for-future-teams)
+- [5. Setup and Quick Start Instructions](#5-setup-and-quick-start-instructions)
+- [6. Future Recommendations](#6-future-recommendations)
+- [7. Additional Documentation](#7-additional-documentation)
+
+---
 
 ## 1. Project Overview
 SmoothOperator is a full-scale, semi-autonomous robotic platform designed to transport luggage and heavy cargo in consumer environments, particularly airports. It integrates dynamic obstacle avoidance, teleoperator control, a lifting mechanism, and a stable, modular chassis to provide intuitive and safe assistance to travelers.
@@ -46,5 +57,3 @@ To get SmoothOperator operational:
 - [Hardware Report (README_HARDWARE.md)](./hardware/README_Hardware.md)
 - [CAD Files and Mechanical Drawings](./cad/)
 - [Source Code](./software/)
-
-
