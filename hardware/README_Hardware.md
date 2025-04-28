@@ -1,7 +1,7 @@
 # SmoothOperator - Hardware Report
 
 ## Table of Contents
-- [Project Overview](#hardware-overview)
+- [Hardware Overview](#hardware-overview)
 - [System Block Diagram](#system-block-diagram)
 - [Bill of Materials (BOM)](#bill-of-materials-bom)
 - [Mechanical Design Overview](#mechanical-design-overview)
@@ -204,7 +204,6 @@ For more detailed assembly photos, see Section 8 below.
 
 
 ## Photos of Assembled System
-(Insert photos of completed system showing multiple angles:
 - Front view
 ![Front View](../images/final_prototype.jpg)
 - Rear view
