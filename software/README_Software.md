@@ -175,7 +175,7 @@ git clone https://github.com/TinkerSo/SmoothOperator.git
 The instructions below are directly from the [ROS wiki site](https://wiki.ros.org/melodic/Installation/Ubuntu)
 
    ### 3.1 Configure your Ubuntu repositories
-      
+     - Configure your Ubuntu repositories to allow "restricted", "universe", and "multiverse". You can [follow the Ubuntu guide](https://help.ubuntu.com/community/Repositories/Ubuntu) for instructions on doing this.
 
 
    
