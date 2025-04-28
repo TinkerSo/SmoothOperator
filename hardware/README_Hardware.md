@@ -101,7 +101,7 @@ Original design files (.f3d, .step, .kicad_pcb) are included alongside PDFs for 
 
 For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 
-## Arduino Mega Pin Mapping
+### Arduino Mega Pin Mapping
 
 | Arduino Pin | Connected Device | Notes |
 |:-----------:|:-----------------|:------|
@@ -127,7 +127,7 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 | RX2 (17)     | Serial Receive from Motor Controller | UART2 |
 | TX2 (16)     | Serial Transmit to Motor Controller | UART2 |
 
-## Jetson Nano Pin Mapping
+### Jetson Nano Pin Mapping
 
 | Jetson Nano Port | Connected Device | Notes |
 |:----------------:|:-----------------|:------|
@@ -136,7 +136,7 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 | USB Port 3        | Logitech C270 Webcam | For teleoperator vision |
 | USB Port 4        | Touchscreen Display | UI Display Output |
 
-## Motor Controller (RoboClaw)
+### Motor Controller (RoboClaw)
 
 | RoboClaw Signal | Connected Device | Notes |
 |:---------------:|:-----------------|:------|
@@ -145,7 +145,7 @@ For detailed assembly photos, wiring diagrams, and tips, see Section 7 below.
 | M1 Outputs      | Left Drive Motor | PWM Motor Control |
 | M2 Outputs      | Right Drive Motor | PWM Motor Control |
 
-## Power Distribution
+### Power Distribution
 
 | Power Rail | Connected Device | Notes |
 |:----------:|:-----------------|:------|
